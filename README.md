@@ -14,10 +14,10 @@ or an explicitly enabled inspection view.
 
 ## Current phase
 
-**P02 — Runtime benchmark and static application foundation.** The P01 creative
-and simulation contracts are approved. P02 provides a deterministic headless
-reference runtime, a WebGL2/Three.js vector renderer, explicit capability
-fallbacks, and repeatable desktop/mobile benchmark routes.
+**P03 — Linear-light spectral color.** The deterministic runtime and static
+Three.js foundation are merged. P03 converts wavelength into linear sRGB, keeps
+emission and bloom in linear light, uses fixed ACES tone mapping, and encodes
+sRGB once for the live canvas and captures.
 
 The non-negotiable direction is:
 
@@ -41,6 +41,8 @@ The non-negotiable direction is:
 - [Runtime architecture](docs/ARCHITECTURE.md)
 - [P02 benchmark and budgets](docs/P02-BENCHMARK.md)
 - [P02 runtime decision](docs/adr/0001-runtime-backend.md)
+- [P03 spectral color pipeline](docs/P03-SPECTRAL-COLOR.md)
+- [P03 output decision](docs/adr/0002-linear-spectral-output.md)
 
 ## Phase order
 
@@ -65,6 +67,7 @@ The production output is a static bundle in `dist/`; it has no server runtime.
 ```bash
 npm run qa
 npm run benchmark:node
+npm run capture:spectral
 npm run build
 ```
 
@@ -73,3 +76,7 @@ browser build to run the paired learned-update/vector-render benchmark and
 download its JSON evidence. The benchmark also records WebGL2 ping-pong and
 transform-feedback throughput probes on the current device. Use
 `?benchmark=1&quality=mobile&duration=300` for the five-minute thermal gate.
+
+Open `?calibration=1` for the interactive wavelength/intensity/exposure board.
+Use `look=porcelain`, `look=technical`, or `look=ghost` to compare the spectral
+response profiles, and **Save PNG** to capture the final post-processed canvas.

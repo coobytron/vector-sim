@@ -28,12 +28,12 @@ requiring a DOM or GPU in deterministic tests.
 | `src/simulation` | Fixed timestep, graph state, seeded gates, lifecycle fixture, hashes | No |
 | `src/nca` | Versioned learned-update fixture and model metadata | No |
 | `src/rendering` | Vector buffer packing, Three.js scene, inspectable GLSL probes | Packer: no; renderer: yes |
-| `src/spectral` | Event permission types; P03 owns wavelength conversion | No |
+| `src/spectral` | Wavelength conversion, semantic events, linear-light look profiles | No |
 | `src/environments` | Home graybox presentation geometry | Yes |
 | `src/platform` | Capability detection, quality selection, DPR/long-edge caps | Pure helpers plus browser detector |
 | `src/benchmark` | Percentiles, browser paired benchmark, GPU throughput probes | Statistics: no; GPU probes: yes |
 | `src/ui` | Status, fallback, controls, benchmark evidence panel | Yes |
-| `src/export` | Browser-side evidence download | Yes |
+| `src/export` | Benchmark JSON plus final-canvas PNG/video color contract | Browser capture only |
 | `tests` | Determinism, headless execution, pacing, packing, quality policy | No renderer |
 
 ## Simulation clock
@@ -66,9 +66,10 @@ The selected P02 renderer uses:
 - tiered antialiasing, shadows, DPR, and resolution caps;
 - a 42° architectural camera with orbit, pan, zoom, and recenter.
 
-P02 deliberately emits no decorative spectral color. It records spectral event
-permission only. P03 owns wavelength-to-linear-RGB conversion, exposure, bloom,
-and tone mapping.
+P03 adds a pure wavelength-to-linear-sRGB core and a presentation-only spectral
+layer. HDR emitter geometry is separate from neutral geometry, bloom thresholds
+exclude ordinary white surfaces, and `OutputPass` owns the single sRGB transfer.
+The simulation snapshot still stores energy and health rather than display RGB.
 
 ## Capability and failure policy
 
