@@ -6,8 +6,8 @@ export const SPECTRAL_CLAMP_MAX_NM = 620;
 export const LIFE_WAVELENGTH_NM = SPECTRAL_CLAMP_MIN_NM;
 export const DEATH_WAVELENGTH_NM = SPECTRAL_CLAMP_MAX_NM;
 export const DEFAULT_SPECTRAL_EXPOSURE = 0.86;
-export const DEFAULT_SPECTRAL_CHROMA_GAIN = 1.18;
-export const DEFAULT_OUTPUT_SATURATION = 0.14;
+export const DEFAULT_SPECTRAL_CHROMA_GAIN = 1.32;
+export const DEFAULT_OUTPUT_SATURATION = 0.18;
 
 export interface Rgb {
   r: number;

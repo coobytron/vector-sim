@@ -13,7 +13,7 @@ flowchart TD
   A[Wavelength + intensity] --> B[CIE 1931 analytic fit]
   B --> C[XYZ to linear sRGB]
   C --> D[Spectral gamut map]
-  D --> E[1.18× source chroma]
+  D --> E[1.32× source chroma]
   E --> F[HDR emission + linear bloom]
   F --> G[Per-look saturation]
   G --> H[Fixed exposure + ACES]
@@ -33,7 +33,7 @@ sRGB matrix.
 
 The spectral locus exceeds the sRGB gamut. The implementation adds the smallest
 neutral component required to remove negative channels, then peak-normalizes the
-result. A deterministic **1.18× source-chroma gain** expands the distance from
+result. A deterministic **1.32× source-chroma gain** expands the distance from
 neutral at the same peak intensity. Channels that leave sRGB are clipped at the
 boundary rather than diluted with more white. Dominant-channel order and the
 470–620 nm semantic direction remain unchanged.
@@ -61,8 +61,8 @@ The default Porcelain Spectrum settings are:
 
 | Setting | Value |
 |---|---:|
-| Source chroma gain | 1.18× |
-| Output saturation | +0.14 |
+| Source chroma gain | 1.32× |
+| Output saturation | +0.18 |
 | Exposure | 0.86 |
 | Bloom strength | 0.34 |
 | Bloom radius | 0.12 |
@@ -102,9 +102,9 @@ will complete the material and geometry representation of those looks.
 
 | Look | Exposure | Bloom | Saturation | Emission scale | Intent |
 |---|---:|---:|---:|---:|---|
-| Porcelain Spectrum | 0.86 | 0.34 | +0.14 | 1.00 | Rich primary causal emission |
-| Technical Wire | 0.94 | 0.14 | +0.08 | 0.58 | Restrained drafting response |
-| Ghost Volume | 0.78 | 0.27 | +0.12 | 0.82 | State visible inside translucent forms |
+| Porcelain Spectrum | 0.86 | 0.34 | +0.18 | 1.00 | Dense primary causal emission |
+| Technical Wire | 0.94 | 0.14 | +0.10 | 0.58 | Restrained drafting response |
+| Ghost Volume | 0.78 | 0.27 | +0.15 | 0.82 | State visible inside translucent forms |
 
 Changing a look never changes wavelength, event state, NCA state, or the neutral
 balance of white material inputs.

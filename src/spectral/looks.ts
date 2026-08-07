@@ -22,7 +22,7 @@ export const SPECTRAL_LOOKS: Record<SpectralLookName, SpectralLookProfile> = {
     bloomRadius: 0.12,
     bloomThreshold: 1.0,
     emissionScale: 1,
-    outputSaturation: 0.14,
+    outputSaturation: 0.18,
   },
   technical: {
     name: 'technical',
@@ -32,7 +32,7 @@ export const SPECTRAL_LOOKS: Record<SpectralLookName, SpectralLookProfile> = {
     bloomRadius: 0.08,
     bloomThreshold: 1.15,
     emissionScale: 0.58,
-    outputSaturation: 0.08,
+    outputSaturation: 0.1,
   },
   ghost: {
     name: 'ghost',
@@ -42,7 +42,7 @@ export const SPECTRAL_LOOKS: Record<SpectralLookName, SpectralLookProfile> = {
     bloomRadius: 0.1,
     bloomThreshold: 0.95,
     emissionScale: 0.82,
-    outputSaturation: 0.12,
+    outputSaturation: 0.15,
   },
 };
 

@@ -145,7 +145,7 @@ const svg = `
   ${wavelengthBand()}
   <text x="88" y="328" class="micro">BLUE / ${LIFE_WAVELENGTH_NM} NM / LIFE</text>
   <text x="1448" y="328" text-anchor="end" class="micro">RED / ${DEATH_WAVELENGTH_NM} NM / DEATH</text>
-  <text x="88" y="352" class="section">HIGHLIGHT ROLLOFF / LIFE BLUE ${LIFE_WAVELENGTH_NM} NM / NEUTRAL WHITE SATURATION ABOVE 3.25×</text>
+  <text x="88" y="352" class="section">HIGHLIGHT ROLLOFF / LIFE BLUE ${LIFE_WAVELENGTH_NM} NM / NEUTRAL WHITE SATURATION ABOVE 4.25×</text>
   ${intensityCards()}
   <text x="88" y="582" class="section">SEMANTIC SYSTEM / COLOR + MOTION + FORM</text>
   ${semanticCards()}

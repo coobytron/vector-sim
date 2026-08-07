@@ -49,7 +49,7 @@ export function createSpectralPanel(
       <div><dt>Tone map</dt><dd>ACES filmic</dd></div>
       <div><dt>Output</dt><dd>sRGB · once</dd></div>
     </dl>
-    <p class="spectral-stage">CIE fit → 1.18× chroma → linear bloom → saturation → ACES → sRGB</p>
+    <p class="spectral-stage">CIE fit → 1.32× chroma → linear bloom → saturation → ACES → sRGB</p>
     <div class="semantic-key" aria-label="Semantic event key">
       <span>${LIFE_WAVELENGTH_NM} nm / life</span><span>${SPECTRAL_CLAMP_MAX_NM} nm / death</span>
       <span>Feed / directed</span><span>Hazard / held</span><span>Damage / fracture</span>

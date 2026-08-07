@@ -39,8 +39,8 @@ for (const term of [
   'SPECTRAL_CLAMP_MIN_NM = 470',
   'SPECTRAL_CLAMP_MAX_NM = 620',
   'lifeDeathToWavelength',
-  'DEFAULT_SPECTRAL_CHROMA_GAIN = 1.18',
-  'DEFAULT_OUTPUT_SATURATION = 0.14',
+  'DEFAULT_SPECTRAL_CHROMA_GAIN = 1.32',
+  'DEFAULT_OUTPUT_SATURATION = 0.18',
   'boostSpectralChroma',
   'adjustLinearSaturation',
   'spectralEmissionLinear',
@@ -91,7 +91,7 @@ if (
 ) {
   failures.push('Spectral reference must clamp 470 nm life to 620 nm death.');
 }
-if (manifest.spectralChromaGain !== 1.18 || manifest.outputSaturation !== 0.14) {
+if (manifest.spectralChromaGain !== 1.32 || manifest.outputSaturation !== 0.18) {
   failures.push('Spectral reference must record the approved richer-color grade.');
 }
 const png = readFileSync(resolve(root, 'assets/reference/spectral-calibration-reference.png'));
@@ -117,8 +117,8 @@ for (const term of [
   'at most 1/255',
   'Linear RGB',
   'Display RGB',
-  '1.18×',
-  '+0.14',
+  '1.32×',
+  '+0.18',
 ]) {
   if (!documentation.includes(term)) failures.push(`P03 documentation is missing: ${term}`);
 }

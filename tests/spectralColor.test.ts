@@ -85,10 +85,10 @@ describe('wavelength-to-linear-sRGB conversion', () => {
   });
 
   it('expands source chroma without changing the dominant channel', () => {
-    expect(DEFAULT_SPECTRAL_CHROMA_GAIN).toBe(1.18);
-    const base = wavelengthToLinearRgb(565, 1);
+    expect(DEFAULT_SPECTRAL_CHROMA_GAIN).toBe(1.32);
+    const previousGrade = wavelengthToLinearRgb(565, 1.18);
     const richer = wavelengthToLinearRgb(565, DEFAULT_SPECTRAL_CHROMA_GAIN);
-    expect(dominantSeparation(richer)).toBeGreaterThan(dominantSeparation(base));
+    expect(dominantSeparation(richer)).toBeGreaterThan(dominantSeparation(previousGrade));
     expect(richer.g).toBe(Math.max(richer.r, richer.g, richer.b));
   });
 });
@@ -124,10 +124,11 @@ describe('linear-light output contract', () => {
   });
 
   it('boosts saturation while leaving neutral architecture unchanged', () => {
-    expect(DEFAULT_OUTPUT_SATURATION).toBe(0.14);
+    expect(DEFAULT_OUTPUT_SATURATION).toBe(0.18);
     const color = { r: 0.08, g: 0.42, b: 1.4 };
+    const previousGrade = adjustLinearSaturation(color, 0.14);
     const richer = adjustLinearSaturation(color, DEFAULT_OUTPUT_SATURATION);
-    expect(chroma(richer)).toBeGreaterThan(chroma(color));
+    expect(chroma(richer)).toBeGreaterThan(chroma(previousGrade));
     expect(adjustLinearSaturation({ r: 0.72, g: 0.72, b: 0.72 })).toEqual({
       r: 0.72,
       g: 0.72,
