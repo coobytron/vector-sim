@@ -1,3 +1,5 @@
+import type { MorphologyTopology } from '../organisms/types';
+
 export type QualityTierName = 'mobile' | 'desktop';
 
 export interface QualityTier {
@@ -36,16 +38,22 @@ export interface SimulationConfig {
   seed: number;
   hiddenChannels?: number;
   learnedWidth?: number;
+  ncaMode?: 'live' | 'frozen';
 }
 
 export interface SimulationSnapshot {
   tick: number;
+  channels: number;
+  ncaMode: 'live' | 'frozen';
   active: Uint8Array;
   positions: Float32Array;
   previousPositions: Float32Array;
+  latent: Float32Array;
   energy: Float32Array;
   health: Float32Array;
+  previousHealth: Float32Array;
   edges: Uint32Array;
+  topology: MorphologyTopology;
 }
 
 export interface FrameAdvance {
@@ -53,4 +61,3 @@ export interface FrameAdvance {
   droppedSeconds: number;
   steps: number;
 }
-

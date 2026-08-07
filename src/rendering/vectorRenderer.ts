@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createHomeEnvironment } from '../environments/home';
 import { describeOutputCapture, downloadCanvasPng } from '../export/colorContract';
+import { selectMorphologyLod } from '../organisms/morphology';
+import type { MorphologyLod, OrganismVisualState } from '../organisms/types';
 import { effectivePixelRatio } from '../platform/capabilities';
 import type { QualityTier, SimulationSnapshot } from '../simulation/types';
 import {
@@ -11,7 +13,6 @@ import {
   type Rgb,
   type SpectralColorSample,
 } from '../spectral/color';
-import { sampleSpectralEvent } from '../spectral/events';
 import type { SpectralLookProfile } from '../spectral/looks';
 import { HomeSpectralEmitters } from './homeSpectralEmitters';
 import { SpectralCalibrationScene } from './spectralCalibrationScene';
@@ -25,15 +26,13 @@ export interface RenderMetrics {
   points: number;
 }
 
-export type RenderMode = 'home' | 'calibration';
+export type RenderMode = 'home' | 'calibration' | 'organisms';
 
 export interface VectorRendererOptions {
   mode: RenderMode;
   look: SpectralLookProfile;
-}
-
-function clamp01(value: number): number {
-  return Math.min(1, Math.max(0, value));
+  captureState?: OrganismVisualState;
+  captureDistance?: MorphologyLod;
 }
 
 function colorFromLinear(color: Rgb, target = new THREE.Color()): THREE.Color {
@@ -47,13 +46,18 @@ export class VectorRenderer {
   readonly controls: OrbitControls;
 
   private readonly nodes: THREE.InstancedMesh;
+  private readonly nodeMaterial: THREE.MeshStandardMaterial;
   private readonly emissionNodes: THREE.InstancedMesh;
   private readonly edgeGeometry: THREE.BufferGeometry;
+  private readonly edgeMaterial: THREE.LineBasicMaterial;
   private readonly emissionEdgeGeometry: THREE.BufferGeometry;
   private readonly emissionEdgeColors: Float32Array;
   private readonly nodeEmissionColors: Float32Array;
   private readonly nodeEmissionStrengths: Float32Array;
   private readonly ribbonGeometry: THREE.BufferGeometry;
+  private readonly ribbonMaterial: THREE.MeshStandardMaterial;
+  private readonly forwardMarkers: THREE.InstancedMesh;
+  private readonly forwardMaterial: THREE.MeshStandardMaterial;
   private readonly packer: VectorBufferPacker;
   private readonly transform = new THREE.Matrix4();
   private readonly position = new THREE.Vector3();
@@ -65,6 +69,10 @@ export class VectorRenderer {
   private readonly homeEmitters?: HomeSpectralEmitters;
   private readonly calibration?: SpectralCalibrationScene;
   private readonly mode: RenderMode;
+  private readonly fixedLod?: MorphologyLod;
+  private readonly packOptions: { lod: MorphologyLod; stateOverride?: OrganismVisualState } = {
+    lod: 'macro',
+  };
   private look: SpectralLookProfile;
   private debugSample: SpectralColorSample;
 
@@ -75,6 +83,8 @@ export class VectorRenderer {
     options: VectorRendererOptions,
   ) {
     this.mode = options.mode;
+    this.fixedLod = options.captureDistance;
+    this.packOptions.stateOverride = options.captureState;
     this.look = options.look;
     this.debugSample = evaluateSpectralColor(
       LIFE_WAVELENGTH_NM,
@@ -96,14 +106,16 @@ export class VectorRenderer {
 
     if (this.mode === 'calibration') {
       this.camera.position.set(0, 0.15, 8.8);
+    } else if (this.mode === 'organisms') {
+      this.setOrganismCamera(options.captureDistance ?? 'mid');
     } else {
       this.camera.position.set(5.4, 3.75, 6.2);
     }
     this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.target.set(0, this.mode === 'calibration' ? 0 : 1.0, 0);
+    this.controls.target.set(0, this.mode === 'calibration' ? 0 : this.mode === 'organisms' ? 0.72 : 1.0, 0);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.075;
-    this.controls.minDistance = this.mode === 'calibration' ? 6.5 : 4.0;
+    this.controls.minDistance = this.mode === 'calibration' ? 6.5 : this.mode === 'organisms' ? 2.2 : 4.0;
     this.controls.maxDistance = 12;
     this.controls.maxPolarAngle = Math.PI * 0.49;
     this.controls.update();
@@ -117,22 +129,31 @@ export class VectorRenderer {
     if (this.mode === 'calibration') {
       this.calibration = new SpectralCalibrationScene(options.look);
       this.scene.add(this.calibration.group);
-    } else {
+    } else if (this.mode === 'home') {
       this.scene.add(createHomeEnvironment());
       this.homeEmitters = new HomeSpectralEmitters(options.look);
       this.scene.add(this.homeEmitters.group);
+    } else {
+      const stage = new THREE.Mesh(
+        new THREE.CircleGeometry(2.35, 96),
+        new THREE.MeshStandardMaterial({ color: 0xf2f2ef, roughness: 0.78, metalness: 0 }),
+      );
+      stage.rotation.x = -Math.PI / 2;
+      stage.position.y = 0.03;
+      stage.receiveShadow = tier.name === 'desktop';
+      this.scene.add(stage);
     }
 
     const nodeGeometry = new THREE.IcosahedronGeometry(0.035, 1);
-    const nodeMaterial = new THREE.MeshStandardMaterial({
+    this.nodeMaterial = new THREE.MeshStandardMaterial({
       color: 0xf2f2ef,
       roughness: 0.48,
       metalness: 0.02,
     });
-    this.nodes = new THREE.InstancedMesh(nodeGeometry, nodeMaterial, snapshot.active.length);
+    this.nodes = new THREE.InstancedMesh(nodeGeometry, this.nodeMaterial, snapshot.active.length);
     this.nodes.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.nodes.frustumCulled = false;
-    this.nodes.visible = this.mode === 'home';
+    this.nodes.visible = this.mode !== 'calibration';
     this.scene.add(this.nodes);
 
     const emissionMaterial = new THREE.MeshBasicMaterial({
@@ -151,7 +172,7 @@ export class VectorRenderer {
     );
     this.emissionNodes.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.emissionNodes.frustumCulled = false;
-    this.emissionNodes.visible = this.mode === 'home';
+    this.emissionNodes.visible = this.mode !== 'calibration';
     this.scene.add(this.emissionNodes);
 
     this.nodeEmissionColors = new Float32Array(snapshot.active.length * 3);
@@ -162,12 +183,14 @@ export class VectorRenderer {
       'position',
       new THREE.BufferAttribute(this.packer.buffers.edgePositions, 3).setUsage(THREE.DynamicDrawUsage),
     );
-    const lines = new THREE.LineSegments(
-      this.edgeGeometry,
-      new THREE.LineBasicMaterial({ color: 0x54545a, transparent: true, opacity: 0.72 }),
-    );
+    this.edgeMaterial = new THREE.LineBasicMaterial({
+      color: 0x54545a,
+      transparent: true,
+      opacity: 0.72,
+    });
+    const lines = new THREE.LineSegments(this.edgeGeometry, this.edgeMaterial);
     lines.frustumCulled = false;
-    lines.visible = this.mode === 'home';
+    lines.visible = this.mode !== 'calibration';
     this.scene.add(lines);
 
     this.emissionEdgeColors = new Float32Array(this.packer.buffers.edgePositions.length);
@@ -192,7 +215,7 @@ export class VectorRenderer {
       }),
     );
     emissionLines.frustumCulled = false;
-    emissionLines.visible = this.mode === 'home';
+    emissionLines.visible = this.mode !== 'calibration';
     this.scene.add(emissionLines);
 
     const ribbonCount = this.packer.buffers.ribbonCount;
@@ -208,18 +231,45 @@ export class VectorRenderer {
       new THREE.BufferAttribute(this.packer.buffers.ribbonPositions, 3).setUsage(THREE.DynamicDrawUsage),
     );
     this.ribbonGeometry.setIndex(new THREE.BufferAttribute(ribbonIndices, 1));
-    const ribbons = new THREE.Mesh(
-      this.ribbonGeometry,
-      new THREE.MeshStandardMaterial({
-        color: 0xbcbcc0,
-        roughness: 0.62,
-        metalness: 0.02,
-        side: THREE.DoubleSide,
-      }),
-    );
+    this.ribbonMaterial = new THREE.MeshStandardMaterial({
+      color: 0xbcbcc0,
+      roughness: 0.62,
+      metalness: 0.02,
+      side: THREE.DoubleSide,
+    });
+    const ribbons = new THREE.Mesh(this.ribbonGeometry, this.ribbonMaterial);
     ribbons.frustumCulled = false;
-    ribbons.visible = this.mode === 'home';
+    ribbons.visible = this.mode !== 'calibration';
     this.scene.add(ribbons);
+
+    this.forwardMaterial = new THREE.MeshStandardMaterial({
+      color: 0xeeeeeb,
+      roughness: 0.38,
+      metalness: 0.04,
+    });
+    this.forwardMarkers = new THREE.InstancedMesh(
+      new THREE.ConeGeometry(0.055, 0.18, 5),
+      this.forwardMaterial,
+      snapshot.topology.organisms.length,
+    );
+    this.forwardMarkers.frustumCulled = false;
+    this.forwardMarkers.visible = this.mode !== 'calibration';
+    const up = new THREE.Vector3(0, 1, 0);
+    const forward = new THREE.Vector3();
+    for (let organism = 0; organism < snapshot.topology.organisms.length; organism += 1) {
+      const descriptor = snapshot.topology.organisms[organism];
+      if (!descriptor) continue;
+      forward.fromArray(descriptor.forward).normalize();
+      this.position.fromArray(descriptor.center).addScaledVector(forward, 0.24);
+      this.rotation.setFromUnitVectors(up, forward);
+      this.scale.setScalar(0.75);
+      this.transform.compose(this.position, this.rotation, this.scale);
+      this.forwardMarkers.setMatrixAt(organism, this.transform);
+    }
+    this.forwardMarkers.instanceMatrix.needsUpdate = true;
+    this.scene.add(this.forwardMarkers);
+
+    this.applyOrganismLook(options.look);
 
     this.postProcessor = new SpectralPostProcessor(
       this.renderer,
@@ -233,7 +283,9 @@ export class VectorRenderer {
   }
 
   update(snapshot: SimulationSnapshot, alpha: number): RenderMetrics {
-    const buffers = this.packer.update(snapshot, alpha);
+    const cameraDistance = this.camera.position.distanceTo(this.controls.target);
+    this.packOptions.lod = this.fixedLod ?? selectMorphologyLod(cameraDistance, this.tier);
+    const buffers = this.packer.update(snapshot, alpha, this.packOptions);
 
     for (let node = 0; node < snapshot.active.length; node += 1) {
       const offset = node * 3;
@@ -246,29 +298,29 @@ export class VectorRenderer {
       this.transform.compose(this.position, this.rotation, this.scale);
       this.nodes.setMatrixAt(node, this.transform);
 
-      const energy = snapshot.energy[node] ?? 0;
-      const health = snapshot.health[node] ?? 1;
-      const feedingStrength = clamp01((energy - 0.65) * 9);
-      const damageStrength = clamp01((1 - health) * 5);
-      const strength = Math.max(feedingStrength, damageStrength);
+      const tone = buffers.nodeBaseTones[node] ?? 0.9;
+      this.color.setRGB(tone, tone, tone, THREE.LinearSRGBColorSpace);
+      this.nodes.setColorAt(node, this.color);
+
+      const strength = buffers.nodeEmissionStrengths[node] ?? 0;
       this.nodeEmissionStrengths[node] = strength;
-      const localPhase = snapshot.tick / 90 - node / Math.max(1, snapshot.active.length);
-      const event = damageStrength > feedingStrength ? 'damage' : 'feeding';
-      const semantic = sampleSpectralEvent(event, localPhase);
       const emission = spectralEmissionLinear(
-        semantic.wavelengthNm,
-        strength * semantic.intensityScale * 3.2 * this.look.emissionScale,
+        buffers.nodeWavelengths[node] ?? LIFE_WAVELENGTH_NM,
+        strength * 3.2 * this.look.emissionScale,
       );
       this.nodeEmissionColors[offset] = emission.r;
       this.nodeEmissionColors[offset + 1] = emission.g;
       this.nodeEmissionColors[offset + 2] = emission.b;
       colorFromLinear(emission, this.color);
       this.emissionNodes.setColorAt(node, this.color);
-      this.scale.setScalar(strength <= 0.001 ? 0 : (buffers.nodeScales[node] ?? 0) * (1.1 + strength * 0.4));
+      this.scale.setScalar(
+        strength <= 0.001 ? 0 : (buffers.nodeScales[node] ?? 0) * (1.1 + strength * 0.4),
+      );
       this.transform.compose(this.position, this.rotation, this.scale);
       this.emissionNodes.setMatrixAt(node, this.transform);
     }
     this.nodes.instanceMatrix.needsUpdate = true;
+    if (this.nodes.instanceColor) this.nodes.instanceColor.needsUpdate = true;
     this.emissionNodes.instanceMatrix.needsUpdate = true;
     if (this.emissionNodes.instanceColor) this.emissionNodes.instanceColor.needsUpdate = true;
 
@@ -307,6 +359,7 @@ export class VectorRenderer {
 
   setLook(look: SpectralLookProfile): void {
     this.look = look;
+    this.applyOrganismLook(look);
     this.postProcessor.setLook(look);
     this.homeEmitters?.setLook(look);
     this.calibration?.setLook(look);
@@ -342,11 +395,47 @@ export class VectorRenderer {
     if (this.mode === 'calibration') {
       this.camera.position.set(0, 0.15, 8.8);
       this.controls.target.set(0, 0, 0);
+    } else if (this.mode === 'organisms') {
+      this.setOrganismCamera(this.fixedLod ?? 'mid');
+      this.controls.target.set(0, 0.72, 0);
     } else {
       this.camera.position.set(5.4, 3.75, 6.2);
       this.controls.target.set(0, 1.0, 0);
     }
     this.controls.update();
+  }
+
+  private setOrganismCamera(distance: MorphologyLod): void {
+    const radius = distance === 'macro' ? 3.35 : distance === 'overview' ? 8.1 : 5.35;
+    this.camera.position.set(radius * 0.66, radius * 0.42, radius * 0.62);
+  }
+
+  private applyOrganismLook(look: SpectralLookProfile): void {
+    const technical = look.name === 'technical';
+    const ghost = look.name === 'ghost';
+    this.nodeMaterial.wireframe = technical;
+    this.nodeMaterial.transparent = ghost;
+    this.nodeMaterial.opacity = ghost ? 0.34 : technical ? 0.86 : 1;
+    this.nodeMaterial.depthWrite = !ghost;
+    this.nodeMaterial.roughness = technical ? 0.72 : ghost ? 0.24 : 0.48;
+    this.nodeMaterial.needsUpdate = true;
+
+    this.edgeMaterial.color.set(technical ? 0x333339 : ghost ? 0x767680 : 0x54545a);
+    this.edgeMaterial.opacity = technical ? 0.9 : ghost ? 0.38 : 0.72;
+    this.edgeMaterial.needsUpdate = true;
+
+    this.ribbonMaterial.wireframe = technical;
+    this.ribbonMaterial.transparent = ghost;
+    this.ribbonMaterial.opacity = ghost ? 0.2 : technical ? 0.62 : 1;
+    this.ribbonMaterial.depthWrite = !ghost;
+    this.ribbonMaterial.roughness = technical ? 0.8 : ghost ? 0.18 : 0.62;
+    this.ribbonMaterial.needsUpdate = true;
+
+    this.forwardMaterial.wireframe = technical;
+    this.forwardMaterial.transparent = ghost;
+    this.forwardMaterial.opacity = ghost ? 0.44 : 1;
+    this.forwardMaterial.depthWrite = !ghost;
+    this.forwardMaterial.needsUpdate = true;
   }
 
   resize(): void {

@@ -30,5 +30,26 @@ describe('HeadlessSimulation', () => {
     }
     expect(first.stateHash()).not.toBe(second.stateHash());
   });
-});
 
+  it('exposes all morphology families through the renderer-independent snapshot', () => {
+    const simulation = new HeadlessSimulation({ tier: QUALITY_TIERS.mobile, seed: 4 });
+    expect(simulation.snapshot.topology.organisms.slice(0, 3).map((organism) => organism.family)).toEqual([
+      'branching',
+      'ribbon',
+      'radial',
+    ]);
+    expect(simulation.snapshot.topology.restPositions.length).toBe(simulation.snapshot.positions.length);
+  });
+
+  it('can freeze neural updates while keeping the same visible state contract', () => {
+    const simulation = new HeadlessSimulation({
+      tier: QUALITY_TIERS.mobile,
+      seed: 18,
+      ncaMode: 'frozen',
+    });
+    const latent = simulation.snapshot.latent.slice();
+    for (let tick = 0; tick < 20; tick += 1) simulation.step();
+    expect(simulation.snapshot.ncaMode).toBe('frozen');
+    expect(simulation.snapshot.latent).toEqual(latent);
+  });
+});

@@ -13,10 +13,12 @@
     "test:watch": "vitest",
     "benchmark:node": "esbuild scripts/benchmark-node.ts --bundle --platform=node --format=esm --outfile=.tmp/benchmark-node.mjs && node .tmp/benchmark-node.mjs",
     "capture:spectral": "esbuild scripts/generate-spectral-reference.ts --bundle --platform=node --format=esm --external:sharp --outfile=.tmp/generate-spectral-reference.mjs && node .tmp/generate-spectral-reference.mjs",
+    "capture:organisms": "esbuild scripts/generate-organism-reference.ts --bundle --platform=node --format=esm --external:sharp --outfile=.tmp/generate-organism-reference.mjs && node .tmp/generate-organism-reference.mjs",
     "validate:p01": "node scripts/validate-p01.mjs",
     "validate:p02": "node scripts/validate-p02.mjs",
     "validate:p03": "node scripts/validate-p03.mjs",
-    "qa": "npm run validate:p01 && npm run validate:p02 && npm run validate:p03 && npm run lint && npm run test && npm run build"
+    "validate:p04": "node scripts/validate-p04.mjs",
+    "qa": "npm run validate:p01 && npm run validate:p02 && npm run validate:p03 && npm run validate:p04 && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "three": "^0.185.1"
