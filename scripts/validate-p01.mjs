@@ -37,7 +37,7 @@ const requiredTerms = new Map([
   ['docs/ART-DIRECTION.md', ['Porcelain Spectrum', 'Technical Wire', 'Ghost Volume', 'prohibited drift', 'Motion Look']],
   ['docs/SIMULATION-CONTRACT.md', ['Neural Cellular Automata', 'per-organism', 'float32[24]', 'Food and kill are applied independently', 'Determinism']],
   ['docs/ENVIRONMENT-CONTRACT.md', ['Signed effect semantics', 'F = 1 - product', 'K = 1 - product', 'home-motion-look']],
-  ['docs/DECISIONS.md', ['Open — P02', 'Creative owner', 'Implementation owner']],
+  ['docs/DECISIONS.md', ['Accepted — P02', 'Creative owner', 'Implementation owner']],
   ['docs/HOME-APPROVAL-CHECKLIST.md', ['Uncaptioned readability test', 'Gate C passes']]
 ]);
 

@@ -12,8 +12,8 @@ Record before review:
 - environment manifest checksum: `TBD`
 - model ID and checksum: `TBD`
 - golden run seed: `TBD in P09`
-- desktop baseline/browser: `TBD in P02`
-- mobile baseline/browser: `TBD in P02`
+- desktop baseline/browser: `MacBook Pro / M1 Max / 32 GB / Safari 26.x / 1920×1080`
+- mobile baseline/browser: `iPhone 16 Pro / iOS 26.5.2 / Mobile Safari / 1280 px long-edge cap`
 - reviewer and date: `TBD`
 
 A check cannot pass from a concept render. It requires the interactive build or

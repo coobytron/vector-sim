@@ -1,0 +1,11 @@
+{
+  "schema": "vector-sim-model-metadata-v1",
+  "id": "reference-fixture-v1",
+  "purpose": "Deterministic P02 learned-update benchmark fixture; not a trained phenotype",
+  "channels": 24,
+  "hiddenWidth": 12,
+  "weightSeed": 1313030449,
+  "weights": "Deterministically expanded from weightSeed by SeededRandom in referenceKernel.ts",
+  "runtimeMutable": false
+}
+

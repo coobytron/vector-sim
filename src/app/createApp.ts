@@ -1,0 +1,106 @@
+import { BrowserBenchmarkSession } from '../benchmark/browserBenchmark';
+import { runGpuMicrobenchmarks } from '../benchmark/gpuMicrobenchmarks';
+import { detectCapabilities, selectQualityTier } from '../platform/capabilities';
+import { VectorRenderer } from '../rendering/vectorRenderer';
+import { FixedStepper } from '../simulation/fixedStepper';
+import { HeadlessSimulation } from '../simulation/headlessSimulation';
+import { showBenchmarkProgress, showBenchmarkResult } from '../ui/benchmarkPanel';
+import { createShell, showFallback } from '../ui/shell';
+
+export interface VectorSimApp {
+  dispose(): void;
+}
+
+export function createApp(root: HTMLElement): VectorSimApp {
+  const parameters = new URLSearchParams(window.location.search);
+  const capabilities = detectCapabilities();
+  const tier = selectQualityTier(capabilities, parameters.get('quality'));
+  const shell = createShell(root, tier.name);
+  const simulation = new HeadlessSimulation({ tier, seed: 0x53504543 });
+  const benchmarkRequested = parameters.get('benchmark') === '1';
+
+  if (!capabilities.webgl2) {
+    shell.canvas.hidden = true;
+    showFallback(
+      shell.fallback,
+      'WebGL2 is unavailable.',
+      `The deterministic simulation core is healthy at tick ${simulation.tick} (${simulation.stateHash()}), but this browser cannot create the required vector renderer. Update the browser or use a WebGL2-capable device.`,
+    );
+    shell.status.textContent = 'Headless fallback';
+    shell.performance.textContent = `${tier.name} · WebGL2 unavailable`;
+    return { dispose: () => undefined };
+  }
+
+  const renderer = new VectorRenderer(shell.canvas, tier, simulation.snapshot);
+  const stepper = new FixedStepper(1 / 30, 4);
+  const benchmark = benchmarkRequested
+    ? new BrowserBenchmarkSession(tier, capabilities)
+    : undefined;
+  const benchmarkPanel = benchmarkRequested ? showBenchmarkProgress(shell.frame, 10) : undefined;
+  let animationFrame = 0;
+  let paused = false;
+  let disposed = false;
+  let frameCounter = 0;
+  let readoutStart = performance.now();
+
+  shell.status.textContent = `${tier.name} tier · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2 path'}`;
+  shell.pauseButton.addEventListener('click', () => {
+    paused = !paused;
+    shell.pauseButton.textContent = paused ? 'Resume' : 'Pause';
+    if (!paused) stepper.reset(performance.now() / 1000);
+  });
+  shell.recenterButton.addEventListener('click', () => renderer.recenter());
+  shell.qualitySelect.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('quality', shell.qualitySelect.value);
+    window.location.assign(url);
+  });
+
+  const onVisibility = (): void => {
+    if (document.hidden) {
+      stepper.reset();
+    } else {
+      stepper.reset(performance.now() / 1000);
+    }
+  };
+  document.addEventListener('visibilitychange', onVisibility);
+
+  const frame = (nowMs: number): void => {
+    if (disposed) return;
+    const frameStart = performance.now();
+    const advance = paused
+      ? { alpha: 1, droppedSeconds: 0, steps: 0 }
+      : stepper.advance(nowMs / 1000, (dt) => simulation.step(dt));
+    const metrics = renderer.update(simulation.snapshot, advance.alpha);
+    const workMs = performance.now() - frameStart;
+    const result = benchmark?.record(
+      { nowMs, workMs, steps: advance.steps, renderer: metrics },
+      () => simulation.stateHash(),
+    );
+    if (result && benchmarkPanel) {
+      result.gpuProbes = runGpuMicrobenchmarks(tier);
+      showBenchmarkResult(benchmarkPanel, result);
+    }
+    frameCounter += 1;
+
+    if (nowMs - readoutStart >= 500) {
+      const elapsed = Math.max(1, nowMs - readoutStart);
+      const fps = (frameCounter * 1000) / elapsed;
+      shell.performance.textContent = `${fps.toFixed(0)} fps · ${workMs.toFixed(1)} ms CPU · ${simulation.tick} ticks · ${metrics.triangles.toLocaleString()} tris`;
+      frameCounter = 0;
+      readoutStart = nowMs;
+    }
+    animationFrame = requestAnimationFrame(frame);
+  };
+
+  animationFrame = requestAnimationFrame(frame);
+
+  return {
+    dispose(): void {
+      disposed = true;
+      cancelAnimationFrame(animationFrame);
+      document.removeEventListener('visibilitychange', onVisibility);
+      renderer.dispose();
+    },
+  };
+}

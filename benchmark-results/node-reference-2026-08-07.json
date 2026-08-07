@@ -1,0 +1,92 @@
+{
+  "schema": "vector-sim-node-benchmark-v1",
+  "timestamp": "2026-08-07T15:05:41.117Z",
+  "measurementClass": "CPU reference + vector-buffer preparation; no GPU rasterization",
+  "runtime": {
+    "node": "v24.14.0",
+    "platform": "linux",
+    "release": "6.18.35",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "totalMemoryBytes": 17106231296,
+    "freeMemoryBytesAtStart": 15389650944
+  },
+  "tiers": [
+    {
+      "tier": "mobile",
+      "organisms": 4,
+      "slotsPerOrganism": 128,
+      "nodes": 512,
+      "edges": 536,
+      "samples": 180,
+      "pairedTickAndPackMs": {
+        "count": 180,
+        "min": 0.4677420000000012,
+        "median": 0.5251365000000092,
+        "p95": 0.6506856999999796,
+        "p99": 1.004241350000007,
+        "max": 1.112987000000004,
+        "mean": 0.5474245222222224
+      },
+      "simulationTickMs": {
+        "count": 180,
+        "min": 0.4576470000000086,
+        "median": 0.5151575000000008,
+        "p95": 0.6391851999999878,
+        "p99": 0.9810940200000192,
+        "max": 0.9877109999999902,
+        "mean": 0.5350398777777773
+      },
+      "vectorPackMs": {
+        "count": 180,
+        "min": 0.00950399999999263,
+        "median": 0.010055000000001257,
+        "p95": 0.01488804999999686,
+        "p99": 0.0717491300000195,
+        "max": 0.19385700000000838,
+        "mean": 0.012384644444445076
+      },
+      "finalTick": 210,
+      "stateHash": "09e14206",
+      "estimatedStateBytes": 187072
+    },
+    {
+      "tier": "desktop",
+      "organisms": 8,
+      "slotsPerOrganism": 256,
+      "nodes": 2048,
+      "edges": 2160,
+      "samples": 180,
+      "pairedTickAndPackMs": {
+        "count": 180,
+        "min": 1.9862679999999955,
+        "median": 2.139585000000011,
+        "p95": 2.546538949999968,
+        "p99": 3.864182030000001,
+        "max": 4.454900000000066,
+        "mean": 2.2220646999999993
+      },
+      "simulationTickMs": {
+        "count": 180,
+        "min": 1.9481010000000083,
+        "median": 2.0952345000000037,
+        "p95": 2.4879553499999814,
+        "p99": 3.822109329999993,
+        "max": 4.41068400000006,
+        "mean": 2.1741992777777788
+      },
+      "vectorPackMs": {
+        "count": 180,
+        "min": 0.03764599999999518,
+        "median": 0.039097999999995636,
+        "p95": 0.054166499999982305,
+        "p99": 0.2194614599999522,
+        "max": 0.565607,
+        "mean": 0.04786542222222007
+      },
+      "finalTick": 210,
+      "stateHash": "e42cdcc6",
+      "estimatedStateBytes": 748416
+    }
+  ]
+}
