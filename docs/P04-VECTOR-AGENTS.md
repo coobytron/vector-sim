@@ -2,8 +2,9 @@
 
 P04 turns the benchmark fixture into a designed organism family. The visible
 agent is still the simulation graph: cells are weighted nodes, adjacency is
-structure, selected edges become tapered ribbons or contour faces, and semantic
-state changes the form without replacing it with a conventional creature mesh.
+structure, selected edges become tapered ribbons, and pooled triangle facets
+turn the graph into a translucent low-poly constellation. Semantic state changes
+the form without replacing it with a conventional creature mesh.
 
 ![Morphology reference](../assets/reference/organism-morphology-reference.png)
 
@@ -16,26 +17,28 @@ Every family uses the same constrained vocabulary:
 - weighted icosahedral points for core, structural, junction, and terminal cells;
 - straight or curved graph edges with intentional retraction gaps;
 - tapered two-triangle ribbons on calligraphic, contour, and selected branch edges;
-- sparse contour loops that read as vector faces rather than solid animal skin;
+- sparse triangle facets and contour loops that read as vector planes rather than solid animal skin;
 - instanced five-sided forward markers, separate from simulation state;
 - white dormant material with event-gated 470–620 nm emission.
 
 The scene owns one node instance batch, one base edge batch, one emission edge
-batch, one ribbon batch, and one direction-marker batch. An update changes typed
-array values only. Death, reconnection, and LOD collapse endpoints toward an edge
-midpoint instead of creating or destroying Three.js objects.
+batch, one ribbon batch, one facet batch, and one direction-marker batch. An
+update changes typed-array values only. Death, reconnection, and LOD collapse
+edges and triangle facets toward their centers instead of creating or destroying
+Three.js objects.
 
 ## Morphology families
 
 | Family | Topology | Silhouette | Direction cue |
 |---|---|---|---|
-| Branching | Trunk plus deterministic dendritic forks | Rooted reach with explicit junctions and terminals | Trunk growth axis |
-| Ribbon | Continuous spine plus sparse contour braces | Folded calligraphic stroke | Leading terminal along the sweep |
-| Radial | Eight spokes plus every-third-ring contour loops | Halo, flower, or shell | Normal of the radial plane |
+| Branching | Angular trunk, primary forks, secondary forks, and sparse branch facets | Asymmetric dendritic constellation with explicit junctions and terminals | Trunk growth axis |
+| Ribbon | Paired rails, alternating braces, and triangulated folds | Tapered spectral trail with a folded low-poly cage | Leading terminal along the sweep |
+| Radial | Eight twisted spokes, ring contours, diagonals, and a faceted shell | Irregular halo or cellular polyhedron with terminal spikes | Normal of the radial plane |
 
 Stable organism IDs combine the unsigned run seed with a seeded 32-bit identity.
-Each node keeps a stable parent, role, organism index, and buffer slot. The
-generated graph never exceeds degree eight.
+Each node keeps a stable parent, role, importance, organism index, and buffer
+slot. Faces reference stable node triples. The generated graph never exceeds
+degree eight.
 
 ## NCA-to-geometry decode
 
@@ -112,10 +115,10 @@ references and their SHA-256 manifest.
 The 2026-08-07 Node reference run includes the new graph adjacency, visual
 decoder, dynamic gaps, and full ribbon buffers.
 
-| Tier | Nodes | Edges | Paired tick + pack median | P95 | Budget |
-|---|---:|---:|---:|---:|---:|
-| Mobile | 512 | 556 | 0.753 ms | 1.024 ms | Simulation P95 ≤8 ms |
-| Desktop | 2,048 | 2,248 | 2.778 ms | 3.100 ms | Simulation P95 ≤4 ms |
+| Tier | Nodes | Edges | Faces | Paired tick + pack median | P95 | Budget |
+|---|---:|---:|---:|---:|---:|---:|
+| Mobile | 512 | 905 | 392 | 0.830 ms | 1.076 ms | Simulation P95 ≤8 ms |
+| Desktop | 2,048 | 3,671 | 1,598 | 3.151 ms | 3.465 ms | Simulation P95 ≤4 ms |
 
 These are CPU reference measurements, not physical Safari evidence. P02 still
 owns the deferred Mac and iPhone browser captures.

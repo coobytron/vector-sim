@@ -154,7 +154,7 @@ function nodeStates(spec: RenderSpec): NodeRenderState[] {
     states.push({
       point: project(node * 3, spec.descriptor, spec),
       radius: (role === NODE_ROLE.core ? 4.5 : role === NODE_ROLE.junction ? 3.2 : role === NODE_ROLE.terminal ? 2.8 : 2.1) * output.thickness,
-      connectivity: output.connectivity,
+      connectivity: spec.state === 'lifecycle' ? Math.max(0.88, output.connectivity) : output.connectivity,
       emission: spectral ? rgbToCss(spectral.displayRgb) : undefined,
       emissionStrength: output.emissionStrength,
       baseTone: output.baseTone,
@@ -172,6 +172,31 @@ function lookBase(look: SpectralLookName): { stroke: string; fill: string; opaci
 function renderOrganism(spec: RenderSpec): string {
   const nodes = nodeStates(spec);
   const base = lookBase(spec.look);
+  const faces: Array<{ depth: number; svg: string }> = [];
+  for (let face = 0; face < topology.faces.length / 3; face += 1) {
+    const aNode = topology.faces[face * 3] ?? 0;
+    const bNode = topology.faces[face * 3 + 1] ?? aNode;
+    const cNode = topology.faces[face * 3 + 2] ?? aNode;
+    if ((topology.nodeOrganism[aNode] ?? -1) !== spec.organismIndex) continue;
+    const a = nodes[aNode - spec.descriptor.start];
+    const b = nodes[bNode - spec.descriptor.start];
+    const c = nodes[cNode - spec.descriptor.start];
+    if (!a || !b || !c) continue;
+    const connectivity = Math.min(a.connectivity, b.connectivity, c.connectivity);
+    const centerX = (a.point.x + b.point.x + c.point.x) / 3;
+    const centerY = (a.point.y + b.point.y + c.point.y) / 3;
+    const point = (node: NodeRenderState) => {
+      const x = centerX + (node.point.x - centerX) * connectivity;
+      const y = centerY + (node.point.y - centerY) * connectivity;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    };
+    const fill = spec.look === 'technical' ? '#f7f7f5' : '#dfe1e4';
+    const opacity = spec.look === 'ghost' ? 0.04 : spec.look === 'technical' ? 0.025 : 0.075;
+    faces.push({
+      depth: (a.point.depth + b.point.depth + c.point.depth) / 3,
+      svg: `<polygon points="${point(a)} ${point(b)} ${point(c)}" fill="${fill}" stroke="${base.stroke}" stroke-width="0.45" opacity="${opacity.toFixed(3)}"/>`,
+    });
+  }
   const edges: Array<{ depth: number; svg: string }> = [];
   for (let edge = 0; edge < topology.edges.length / 2; edge += 1) {
     const startNode = topology.edges[edge * 2] ?? 0;
@@ -189,7 +214,7 @@ function renderOrganism(spec: RenderSpec): string {
     const ey = my + (end.point.y - my) * connectivity;
     const kind = topology.edgeKind[edge] ?? EDGE_KIND.structure;
     const ribbon = kind === EDGE_KIND.ribbon || kind === EDGE_KIND.contour;
-    const width = ribbon ? (spec.look === 'technical' ? 1.5 : 4.4) : 1.25;
+    const width = ribbon ? (spec.look === 'technical' ? 1.3 : 2.8) : 1.15;
     const dash = spec.look === 'technical' && kind === EDGE_KIND.contour ? ' stroke-dasharray="4 5"' : '';
     const emission = end.emissionStrength >= start.emissionStrength ? end.emission : start.emission;
     const emissionStrength = Math.max(start.emissionStrength, end.emissionStrength);
@@ -202,6 +227,7 @@ function renderOrganism(spec: RenderSpec): string {
     });
   }
 
+  const faceSvg = faces.sort((a, b) => a.depth - b.depth).map((face) => face.svg).join('');
   const edgeSvg = edges.sort((a, b) => a.depth - b.depth).map((edge) => edge.svg).join('');
   const nodeSvg = nodes
     .map((node) => {
@@ -213,7 +239,7 @@ function renderOrganism(spec: RenderSpec): string {
       return `${baseNode}${glow}`;
     })
     .join('');
-  return `${edgeSvg}${nodeSvg}`;
+  return `${faceSvg}${edgeSvg}${nodeSvg}`;
 }
 
 function documentShell(title: string, subtitle: string, body: string, footer: string): string {

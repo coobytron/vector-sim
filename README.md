@@ -16,7 +16,7 @@ or an explicitly enabled inspection view.
 
 **P04 — 3D vector-agent visual system.** Branching, Ribbon, and Radial organisms
 now share one graph/NCA decode contract. The renderer keeps stable pooled node,
-edge, ribbon, and direction-marker geometry while lifecycle state changes
+edge, ribbon, low-poly facet, and direction-marker geometry while lifecycle state changes
 thickness, curvature, connectivity, opacity, and localized spectral emission.
 
 ![P04 vector organism grammar](assets/reference/organism-morphology-reference.png)

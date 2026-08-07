@@ -27,6 +27,9 @@ export interface VectorBuffers {
   edgeActivity: Float32Array;
   ribbonPositions: Float32Array;
   ribbonCount: number;
+  facePositions: Float32Array;
+  faceActivity: Float32Array;
+  faceCount: number;
   lod: MorphologyLod;
 }
 
@@ -36,10 +39,6 @@ function clamp(value: number, minimum: number, maximum: number): number {
 
 function latentChannel(snapshot: SimulationSnapshot, node: number, channel: number): number {
   return snapshot.latent[node * snapshot.channels + channel] ?? 0;
-}
-
-function nodeImportance(role: number): number {
-  return role === NODE_ROLE.structure ? 1 : 2;
 }
 
 export class VectorBufferPacker {
@@ -62,6 +61,7 @@ export class VectorBufferPacker {
 
   constructor(snapshot: SimulationSnapshot) {
     const edgeCount = snapshot.edges.length / 2;
+    const faceCount = snapshot.topology.faces.length / 3;
     this.interpolation = new Float32Array(snapshot.positions.length);
     this.nodeConnectivity = new Float32Array(snapshot.active.length);
     this.nodeRibbonWeights = new Float32Array(snapshot.active.length);
@@ -76,6 +76,9 @@ export class VectorBufferPacker {
       edgeActivity: new Float32Array(edgeCount),
       ribbonPositions: new Float32Array(edgeCount * 4 * 3),
       ribbonCount: edgeCount,
+      facePositions: new Float32Array(faceCount * 3 * 3),
+      faceActivity: new Float32Array(faceCount),
+      faceCount,
       lod: 'macro',
     };
   }
@@ -132,7 +135,8 @@ export class VectorBufferPacker {
       this.buffers.nodePositions[offset + 1] =
         py + Math.sin(node * 0.47) * this.decoded.curvature * 0.28 + latentChannel(snapshot, node, 1) * 0.012;
       this.buffers.nodePositions[offset + 2] = pz + curveZ + latentChannel(snapshot, node, 2) * 0.012;
-      const visible = nodeImportance(role) >= threshold && snapshot.active[node] === 1;
+      const importance = snapshot.topology.nodeImportance[node] ?? (role === NODE_ROLE.structure ? 1 : 2);
+      const visible = importance >= threshold && snapshot.active[node] === 1;
       this.buffers.nodeScales[node] = visible ? this.decoded.thickness : 0;
       this.buffers.nodeBaseTones[node] = this.decoded.baseTone;
       this.buffers.nodeWavelengths[node] = this.decoded.wavelengthNm;
@@ -219,6 +223,52 @@ export class VectorBufferPacker {
           packedEz - nz * endWidth,
         ],
         ribbonOffset,
+      );
+    }
+
+    for (let index = 0; index < snapshot.topology.faces.length; index += 3) {
+      const face = index / 3;
+      const a = snapshot.topology.faces[index] ?? 0;
+      const b = snapshot.topology.faces[index + 1] ?? a;
+      const c = snapshot.topology.faces[index + 2] ?? a;
+      const importance = snapshot.topology.faceImportance[face] ?? 0;
+      const activity = importance >= threshold
+        ? Math.min(
+            this.nodeConnectivity[a] ?? 0,
+            this.nodeConnectivity[b] ?? 0,
+            this.nodeConnectivity[c] ?? 0,
+          )
+        : 0;
+      this.buffers.faceActivity[face] = activity;
+      const aOffset = a * 3;
+      const bOffset = b * 3;
+      const cOffset = c * 3;
+      const ax = this.buffers.nodePositions[aOffset] ?? 0;
+      const ay = this.buffers.nodePositions[aOffset + 1] ?? 0;
+      const az = this.buffers.nodePositions[aOffset + 2] ?? 0;
+      const bx = this.buffers.nodePositions[bOffset] ?? ax;
+      const by = this.buffers.nodePositions[bOffset + 1] ?? ay;
+      const bz = this.buffers.nodePositions[bOffset + 2] ?? az;
+      const cx = this.buffers.nodePositions[cOffset] ?? ax;
+      const cy = this.buffers.nodePositions[cOffset + 1] ?? ay;
+      const cz = this.buffers.nodePositions[cOffset + 2] ?? az;
+      const centerX = (ax + bx + cx) / 3;
+      const centerY = (ay + by + cy) / 3;
+      const centerZ = (az + bz + cz) / 3;
+      const write = face * 9;
+      this.buffers.facePositions.set(
+        [
+          centerX + (ax - centerX) * activity,
+          centerY + (ay - centerY) * activity,
+          centerZ + (az - centerZ) * activity,
+          centerX + (bx - centerX) * activity,
+          centerY + (by - centerY) * activity,
+          centerZ + (bz - centerZ) * activity,
+          centerX + (cx - centerX) * activity,
+          centerY + (cy - centerY) * activity,
+          centerZ + (cz - centerZ) * activity,
+        ],
+        write,
       );
     }
 

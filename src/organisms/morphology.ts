@@ -21,6 +21,13 @@ interface EdgeRecord {
   importance: number;
 }
 
+interface FaceRecord {
+  a: number;
+  b: number;
+  c: number;
+  importance: number;
+}
+
 interface LocalNode {
   x: number;
   y: number;
@@ -29,6 +36,26 @@ interface LocalNode {
   role: NodeRole;
   edgeKind: EdgeKind;
   importance: number;
+}
+
+interface LocalEdgeRecord {
+  start: number;
+  end: number;
+  kind: EdgeKind;
+  importance: number;
+}
+
+interface LocalFaceRecord {
+  a: number;
+  b: number;
+  c: number;
+  importance: number;
+}
+
+interface LocalMorphology {
+  nodes: LocalNode[];
+  edges: LocalEdgeRecord[];
+  faces: LocalFaceRecord[];
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -45,114 +72,291 @@ function stableOrganismId(seed: number, organism: number): string {
   return (high | low).toString();
 }
 
-function branchingNode(local: number, slots: number): LocalNode {
-  const trunkLength = Math.min(16, slots);
-  if (local < trunkLength) {
-    const phase = local * 0.58;
-    return {
-      x: Math.sin(phase) * 0.035,
-      y: 0.24 + local * 0.055,
-      z: Math.cos(phase) * 0.035,
+function triangleWave(value: number): number {
+  const wrapped = value - Math.floor(value);
+  return 1 - Math.abs(wrapped * 4 - 2);
+}
+
+function addFacet(
+  edges: LocalEdgeRecord[],
+  faces: LocalFaceRecord[],
+  a: number,
+  b: number,
+  c: number,
+  importance: number,
+): void {
+  edges.push({ start: a, end: c, kind: EDGE_KIND.contour, importance });
+  faces.push({ a, b, c, importance });
+}
+
+function createBranchingMorphology(slots: number): LocalMorphology {
+  const nodes: LocalNode[] = [];
+  const edges: LocalEdgeRecord[] = [];
+  const faces: LocalFaceRecord[] = [];
+  const trunkLength = Math.min(slots, Math.max(8, Math.min(18, Math.round(slots * 0.14))));
+
+  for (let local = 0; local < trunkLength; local += 1) {
+    const importance = local === 0 || local === trunkLength - 1 || local % 4 === 0 ? 2 : 1;
+    nodes.push({
+      x: triangleWave(local * 0.29 + 0.18) * 0.055 + Math.sin(local * 1.73) * 0.014,
+      y: 0.18 + local * 0.052,
+      z: triangleWave(local * 0.21 + 0.61) * 0.052 + Math.cos(local * 1.17) * 0.012,
       parent: local === 0 ? NO_PARENT : local - 1,
       role: local === 0
         ? NODE_ROLE.core
         : local === trunkLength - 1
           ? NODE_ROLE.terminal
-          : local % 3 === 0
+          : local % 4 === 0
             ? NODE_ROLE.junction
             : NODE_ROLE.structure,
       edgeKind: EDGE_KIND.structure,
-      importance: local === 0 || local === trunkLength - 1 ? 2 : 1,
-    };
+      importance,
+    });
+    if (local >= 2 && local % 3 === 2) addFacet(edges, faces, local - 2, local - 1, local, 1);
   }
 
-  const branchLength = 16;
-  const branch = Math.floor((local - trunkLength) / branchLength);
-  const along = (local - trunkLength) % branchLength;
-  const branchCount = Math.max(1, Math.ceil((slots - trunkLength) / branchLength));
-  const angle = (branch / branchCount) * Math.PI * 2 + (branch % 2) * 0.22;
-  const attachment = 2 + (branch * 3) % Math.max(1, trunkLength - 3);
-  const distance = (along + 1) * 0.055;
-  const fork = 1 + 0.15 * Math.sin(along * 0.8 + branch);
-  return {
-    x: Math.cos(angle) * distance * fork,
-    y: 0.24 + attachment * 0.055 + along * 0.032,
-    z: Math.sin(angle) * distance * fork,
-    parent: along === 0 ? attachment : local - 1,
-    role: along === 0
-      ? NODE_ROLE.junction
-      : along === branchLength - 1 || local === slots - 1
-        ? NODE_ROLE.terminal
-        : NODE_ROLE.structure,
-    edgeKind: EDGE_KIND.branch,
-    importance: along === 0 || along === branchLength - 1 || local === slots - 1 ? 2 : 1,
-  };
-}
+  const branchRanges: Array<{ start: number; count: number; parent: number }> = [];
+  const primaryBranches = Math.min(6, Math.max(3, Math.floor((slots - trunkLength) / 12)));
+  let branch = 0;
+  while (nodes.length < slots) {
+    let parent: number;
+    if (branch < primaryBranches || branchRanges.length === 0) {
+      parent = Math.min(trunkLength - 1, 2 + (branch * 3) % Math.max(1, trunkLength - 3));
+    } else {
+      const parentRange = branchRanges[(branch - primaryBranches) % branchRanges.length];
+      if (!parentRange) break;
+      parent = parentRange.start + Math.min(parentRange.count - 1, 3 + (branch % 4));
+    }
+    const root = nodes[parent];
+    if (!root) break;
+    root.role = NODE_ROLE.junction;
+    root.importance = 2;
 
-function ribbonNode(local: number, slots: number): LocalNode {
-  const amount = slots <= 1 ? 0 : local / (slots - 1);
-  const sweep = (amount - 0.5) * 1.55;
-  const fold = amount * Math.PI * 5;
-  const curl = amount * Math.PI * 2;
-  return {
-    x: sweep,
-    y: 0.73 + Math.sin(fold) * 0.2 + Math.sin(curl) * 0.06,
-    z: Math.cos(fold * 0.72) * 0.24 + Math.sin(curl * 1.5) * 0.08,
-    parent: local === 0 ? NO_PARENT : local - 1,
-    role: local === 0
-      ? NODE_ROLE.core
-      : local === slots - 1
-        ? NODE_ROLE.terminal
-        : local % 16 === 0
-          ? NODE_ROLE.junction
-          : NODE_ROLE.structure,
-    edgeKind: EDGE_KIND.ribbon,
-    importance: local === 0 || local === slots - 1 || local % 16 === 0 ? 2 : 1,
-  };
-}
-
-function radialNode(local: number, slots: number): LocalNode {
-  if (local === 0) {
-    return {
-      x: 0,
-      y: 0.78,
-      z: 0,
-      parent: NO_PARENT,
-      role: NODE_ROLE.core,
-      edgeKind: EDGE_KIND.structure,
-      importance: 2,
-    };
+    const start = nodes.length;
+    const count = Math.min(8 + (branch % 4), slots - start);
+    const azimuth = branch * 2.399963229728653 + (branch % 2) * 0.27;
+    let x = root.x;
+    let y = root.y;
+    let z = root.z;
+    for (let along = 0; along < count; along += 1) {
+      const kink = Math.floor(along / 2) * (branch % 2 === 0 ? 0.19 : -0.23);
+      const direction = azimuth + kink + triangleWave(along * 0.37 + branch * 0.13) * 0.16;
+      const step = 0.052 + ((along + branch) % 3) * 0.006;
+      x += Math.cos(direction) * step;
+      z += Math.sin(direction) * step;
+      y += 0.021 + (((along + branch) % 4) - 1.5) * 0.006;
+      const local = nodes.length;
+      const terminal = along === count - 1 || local === slots - 1;
+      const primary = branch < primaryBranches;
+      nodes.push({
+        x,
+        y,
+        z,
+        parent: along === 0 ? parent : local - 1,
+        role: terminal ? NODE_ROLE.terminal : along % 4 === 0 ? NODE_ROLE.junction : NODE_ROLE.structure,
+        edgeKind: EDGE_KIND.branch,
+        importance: terminal || (primary && along % 2 === 0) ? 2 : 1,
+      });
+      if (along >= 2 && along % 3 === 2) {
+        addFacet(edges, faces, local - 2, local - 1, local, primary ? 1 : 0);
+      }
+    }
+    branchRanges.push({ start, count, parent });
+    branch += 1;
   }
+  const cageCenter = Math.floor(trunkLength * 0.52);
+  const cageBranches = Math.min(primaryBranches, branchRanges.length);
+  for (let index = 0; index < cageBranches; index += 1) {
+    const current = branchRanges[index];
+    const next = branchRanges[(index + 1) % cageBranches];
+    if (!current || !next) continue;
+    const a = current.start + Math.min(2, current.count - 1);
+    const b = next.start + Math.min(2, next.count - 1);
+    edges.push({ start: a, end: b, kind: EDGE_KIND.contour, importance: 1 });
+    faces.push({ a: cageCenter, b: a, c: b, importance: 0 });
+  }
+  return { nodes, edges, faces };
+}
+
+function ribbonCenter(amount: number): readonly [number, number, number] {
+  if (amount < 0.64) {
+    const trail = amount / 0.64;
+    return [
+      -0.78 + trail * 1.03,
+      0.72 + Math.sin(trail * Math.PI * 2) * 0.1 + trail * 0.06,
+      -0.08 + Math.sin(trail * Math.PI) * 0.14,
+    ];
+  }
+  const curl = (amount - 0.64) / 0.36;
+  const radius = 0.105 + curl * 0.06;
+  return [
+    0.25 + Math.sin(curl * Math.PI * 2.4) * radius,
+    0.78 + Math.sin(curl * Math.PI * 3.2) * 0.18,
+    -0.08 + (1 - Math.cos(curl * Math.PI * 2.2)) * 0.12,
+  ];
+}
+
+function createRibbonMorphology(slots: number): LocalMorphology {
+  const nodes: LocalNode[] = [];
+  const edges: LocalEdgeRecord[] = [];
+  const faces: LocalFaceRecord[] = [];
+  const slices = Math.ceil(slots / 2);
+
+  for (let slice = 0; slice < slices; slice += 1) {
+    const amount = slices <= 1 ? 0 : slice / (slices - 1);
+    const epsilon = 1 / Math.max(4, slices - 1);
+    const center = ribbonCenter(amount);
+    const before = ribbonCenter(Math.max(0, amount - epsilon));
+    const after = ribbonCenter(Math.min(1, amount + epsilon));
+    const tangentX = after[0] - before[0];
+    const tangentY = after[1] - before[1];
+    const tangentZ = after[2] - before[2];
+    let normalX = -tangentZ;
+    let normalY = tangentX * 0.24 + Math.sin(amount * Math.PI * 5) * 0.16;
+    let normalZ = tangentX - tangentY * 0.16;
+    const normalLength = Math.max(0.0001, Math.hypot(normalX, normalY, normalZ));
+    normalX /= normalLength;
+    normalY /= normalLength;
+    normalZ /= normalLength;
+    const trailEnvelope = Math.pow(Math.max(0, Math.sin(Math.min(1, amount / 0.72) * Math.PI)), 0.8);
+    const cage = Math.max(0, Math.min(1, (amount - 0.52) / 0.22));
+    const halfWidth = 0.016 + trailEnvelope * 0.018 + cage * (0.075 + Math.sin(amount * Math.PI * 5) * 0.012);
+
+    for (let side = 0; side < 2 && nodes.length < slots; side += 1) {
+      const sign = side === 0 ? -1 : 1;
+      const local = nodes.length;
+      const first = slice === 0;
+      const last = slice === slices - 1 || local >= slots - 2;
+      const keySlice = slice % 8 === 0;
+      nodes.push({
+        x: center[0] + normalX * halfWidth * sign,
+        y: center[1] + normalY * halfWidth * sign,
+        z: center[2] + normalZ * halfWidth * sign,
+        parent: first ? (side === 0 ? NO_PARENT : 0) : local - 2,
+        role: first && side === 0
+          ? NODE_ROLE.core
+          : last
+            ? NODE_ROLE.terminal
+            : keySlice
+              ? NODE_ROLE.junction
+              : NODE_ROLE.structure,
+        edgeKind: side === 0 ? EDGE_KIND.structure : EDGE_KIND.ribbon,
+        importance: first || last || side === 0 || keySlice ? 2 : 1,
+      });
+    }
+
+    const left = slice * 2;
+    const right = left + 1;
+    if (slice > 0 && right < nodes.length) {
+      const previousLeft = left - 2;
+      const previousRight = right - 2;
+      const keySlice = slice % 8 === 0 || slice === slices - 1;
+      const cage = amount >= 0.54;
+      if (!cage && slice % 6 !== 0) continue;
+      edges.push({
+        start: left,
+        end: right,
+        kind: EDGE_KIND.contour,
+        importance: keySlice ? 2 : cage && slice % 2 === 0 ? 1 : 0,
+      });
+      if (!cage) continue;
+      edges.push({
+        start: previousLeft,
+        end: right,
+        kind: EDGE_KIND.contour,
+        importance: keySlice ? 1 : 0,
+      });
+      faces.push(
+        { a: previousLeft, b: left, c: right, importance: keySlice ? 1 : 0 },
+        { a: previousLeft, b: right, c: previousRight, importance: keySlice ? 1 : 0 },
+      );
+    }
+  }
+  return { nodes, edges, faces };
+}
+
+function createRadialMorphology(slots: number): LocalMorphology {
+  const nodes: LocalNode[] = [{
+    x: 0,
+    y: 0.76,
+    z: 0,
+    parent: NO_PARENT,
+    role: NODE_ROLE.core,
+    edgeKind: EDGE_KIND.structure,
+    importance: 2,
+  }];
+  const edges: LocalEdgeRecord[] = [];
+  const faces: LocalFaceRecord[] = [];
+  if (slots <= 1) return { nodes: nodes.slice(0, slots), edges, faces };
   const spokes = Math.min(8, Math.max(3, slots - 1));
-  const ring = Math.floor((local - 1) / spokes) + 1;
-  const spoke = (local - 1) % spokes;
-  const angle = (spoke / spokes) * Math.PI * 2 + ring * 0.08;
-  const radius = 0.055 + ring * 0.045;
-  const previousRing = local - spokes;
-  const finalRing = Math.ceil((slots - 1) / spokes);
-  return {
-    x: Math.cos(angle) * radius,
-    y: 0.78 + Math.sin(angle) * radius,
-    z: Math.cos(ring * 0.43) * 0.09 + Math.sin(angle * 2) * radius * 0.08,
-    parent: ring === 1 ? 0 : previousRing,
-    role: ring === finalRing || local + spokes >= slots
-      ? NODE_ROLE.terminal
-      : ring % 3 === 0
-        ? NODE_ROLE.junction
-        : NODE_ROLE.structure,
-    edgeKind: EDGE_KIND.branch,
-    importance: ring === 1 || ring === finalRing || local + spokes >= slots ? 2 : 1,
-  };
+  const rings = Math.ceil((slots - 1) / spokes);
+
+  for (let ring = 1; ring <= rings && nodes.length < slots; ring += 1) {
+    const ringStart = nodes.length;
+    const count = Math.min(spokes, slots - ringStart);
+    for (let spoke = 0; spoke < count; spoke += 1) {
+      const angle = (spoke / spokes) * Math.PI * 2 + ring * 0.19 + (spoke % 2) * 0.055;
+      const polar = (ring / (rings + 1)) * Math.PI;
+      const shell = 0.36 * (1 + Math.sin(spoke * 2.1 + ring * 0.7) * 0.055);
+      const radius = Math.sin(polar) * shell;
+      const local = nodes.length;
+      const terminal = ring === rings || local + spokes >= slots;
+      const keySpoke = spoke % 2 === 0;
+      nodes.push({
+        x: Math.cos(angle) * radius * (1 + Math.sin(ring * 0.61) * 0.08),
+        y: 0.76 + Math.cos(polar) * 0.34 + Math.sin(angle * 1.45 + ring * 0.31) * 0.035,
+        z: Math.sin(angle) * radius * 0.9,
+        parent: ring === 1 ? 0 : local - spokes,
+        role: terminal
+          ? NODE_ROLE.terminal
+          : ring % 4 === 0 || keySpoke && ring % 3 === 0
+            ? NODE_ROLE.junction
+            : NODE_ROLE.structure,
+        edgeKind: EDGE_KIND.branch,
+        importance: terminal || keySpoke ? 2 : 1,
+      });
+    }
+
+    for (let spoke = 0; spoke < count; spoke += 1) {
+      const current = ringStart + spoke;
+      const next = ringStart + ((spoke + 1) % count);
+      const outer = ring === rings;
+      edges.push({
+        start: current,
+        end: next,
+        kind: ring % 3 === 0 ? EDGE_KIND.contour : EDGE_KIND.structure,
+        importance: outer ? 2 : ring % 4 === 0 ? 1 : 0,
+      });
+      if (ring === 1) {
+        faces.push({ a: 0, b: current, c: next, importance: 1 });
+        continue;
+      }
+      const previous = current - spokes;
+      const previousNext = next - spokes;
+      if (previous <= 0 || previousNext <= 0) continue;
+      edges.push({
+        start: current,
+        end: previousNext,
+        kind: EDGE_KIND.structure,
+        importance: outer && spoke % 2 === 0 ? 1 : 0,
+      });
+      faces.push(
+        { a: previous, b: current, c: next, importance: outer ? 1 : 0 },
+        { a: previous, b: next, c: previousNext, importance: outer ? 1 : 0 },
+      );
+    }
+  }
+  return { nodes, edges, faces };
 }
 
-function localNode(family: MorphologyFamily, local: number, slots: number): LocalNode {
+function createLocalMorphology(family: MorphologyFamily, slots: number): LocalMorphology {
   switch (family) {
     case 'branching':
-      return branchingNode(local, slots);
+      return createBranchingMorphology(slots);
     case 'ribbon':
-      return ribbonNode(local, slots);
+      return createRibbonMorphology(slots);
     case 'radial':
-      return radialNode(local, slots);
+      return createRadialMorphology(slots);
   }
 }
 
@@ -173,52 +377,17 @@ function rotateAndPlace(
   ];
 }
 
-function addSupplementalEdges(
-  family: MorphologyFamily,
-  start: number,
-  slots: number,
-  edges: EdgeRecord[],
-): void {
-  if (family === 'ribbon') {
-    for (let local = 15; local < slots; local += 16) {
-      edges.push({
-        start: start + local - 15,
-        end: start + local,
-        kind: EDGE_KIND.contour,
-        importance: 0,
-      });
-    }
-    return;
-  }
-  if (family !== 'radial') return;
-  const spokes = Math.min(8, Math.max(3, slots - 1));
-  const rings = Math.ceil((slots - 1) / spokes);
-  for (let ring = 3; ring <= rings; ring += 3) {
-    const ringStart = 1 + (ring - 1) * spokes;
-    for (let spoke = 0; spoke < spokes; spoke += 1) {
-      const current = ringStart + spoke;
-      const next = ringStart + ((spoke + 1) % spokes);
-      if (current < slots && next < slots) {
-        edges.push({
-          start: start + current,
-          end: start + next,
-          kind: EDGE_KIND.contour,
-          importance: ring === rings ? 2 : 0,
-        });
-      }
-    }
-  }
-}
-
 export function createMorphologyTopology(tier: QualityTier, seed: number): MorphologyTopology {
   const nodeCount = tier.organisms * tier.slotsPerOrganism;
   const restPositions = new Float32Array(nodeCount * 3);
   const nodeOrganism = new Uint16Array(nodeCount);
   const nodeParent = new Uint32Array(nodeCount);
   const nodeRole = new Uint8Array(nodeCount);
+  const nodeImportance = new Uint8Array(nodeCount);
   nodeParent.fill(NO_PARENT);
   const organisms: OrganismDescriptor[] = [];
   const edges: EdgeRecord[] = [];
+  const faces: FaceRecord[] = [];
 
   for (let organism = 0; organism < tier.organisms; organism += 1) {
     const family = familyFor(organism);
@@ -251,9 +420,12 @@ export function createMorphologyTopology(tier: QualityTier, seed: number): Morph
       forward,
     });
 
+    const morphology = createLocalMorphology(family, tier.slotsPerOrganism);
+
     for (let local = 0; local < tier.slotsPerOrganism; local += 1) {
       const node = start + local;
-      const shape = localNode(family, local, tier.slotsPerOrganism);
+      const shape = morphology.nodes[local];
+      if (!shape) throw new RangeError(`${family} morphology produced ${morphology.nodes.length} of ${tier.slotsPerOrganism} nodes.`);
       const jitter = (counterRandom(seed, organism, local, 0, 4) - 0.5) * 0.016;
       const position = rotateAndPlace(
         shape.x + jitter,
@@ -269,6 +441,7 @@ export function createMorphologyTopology(tier: QualityTier, seed: number): Morph
       restPositions[offset + 2] = position[2];
       nodeOrganism[node] = organism;
       nodeRole[node] = shape.role;
+      nodeImportance[node] = shape.importance;
       if (shape.parent !== NO_PARENT) {
         const parent = start + clamp(shape.parent, 0, tier.slotsPerOrganism - 1);
         nodeParent[node] = parent;
@@ -280,7 +453,22 @@ export function createMorphologyTopology(tier: QualityTier, seed: number): Morph
         });
       }
     }
-    addSupplementalEdges(family, start, tier.slotsPerOrganism, edges);
+    for (const edge of morphology.edges) {
+      edges.push({
+        start: start + edge.start,
+        end: start + edge.end,
+        kind: edge.kind,
+        importance: edge.importance,
+      });
+    }
+    for (const face of morphology.faces) {
+      faces.push({
+        a: start + face.a,
+        b: start + face.b,
+        c: start + face.c,
+        importance: face.importance,
+      });
+    }
   }
 
   const edgePairs = new Uint32Array(edges.length * 2);
@@ -295,6 +483,17 @@ export function createMorphologyTopology(tier: QualityTier, seed: number): Morph
     edgeImportance[edge] = record.importance;
   }
 
+  const faceIndices = new Uint32Array(faces.length * 3);
+  const faceImportance = new Uint8Array(faces.length);
+  for (let face = 0; face < faces.length; face += 1) {
+    const record = faces[face];
+    if (!record) continue;
+    faceIndices[face * 3] = record.a;
+    faceIndices[face * 3 + 1] = record.b;
+    faceIndices[face * 3 + 2] = record.c;
+    faceImportance[face] = record.importance;
+  }
+
   return {
     tier,
     seed: seed >>> 0,
@@ -303,9 +502,12 @@ export function createMorphologyTopology(tier: QualityTier, seed: number): Morph
     nodeOrganism,
     nodeParent,
     nodeRole,
+    nodeImportance,
     edges: edgePairs,
     edgeKind,
     edgeImportance,
+    faces: faceIndices,
+    faceImportance,
   };
 }
 

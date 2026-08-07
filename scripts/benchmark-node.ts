@@ -12,6 +12,7 @@ interface TierResult {
   slotsPerOrganism: number;
   nodes: number;
   edges: number;
+  faces: number;
   samples: number;
   pairedTickAndPackMs: ReturnType<typeof summarize>;
   simulationTickMs: ReturnType<typeof summarize>;
@@ -62,6 +63,7 @@ function runTier(tierName: QualityTierName): TierResult {
     slotsPerOrganism: tier.slotsPerOrganism,
     nodes: simulation.nodeCount,
     edges: snapshot.edges.length / 2,
+    faces: snapshot.topology.faces.length / 3,
     samples,
     pairedTickAndPackMs: summarize(paired),
     simulationTickMs: summarize(simulationTimes),

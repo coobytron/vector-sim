@@ -19,7 +19,7 @@ flowchart TD
 ```
 
 The same `VectorBufferPacker` runs in the Node benchmark and the visible browser
-renderer. This keeps node, edge, and sparse-ribbon preparation measurable without
+renderer. This keeps node, edge, sparse-ribbon, and low-poly facet preparation measurable without
 requiring a DOM or GPU in deterministic tests.
 
 ## Source boundaries
@@ -64,6 +64,7 @@ The selected P02 renderer uses:
 - one instanced icosahedral node draw;
 - one dynamic line-segment draw for graph edges;
 - one sparse indexed ribbon draw;
+- one pooled non-indexed triangle-facet draw;
 - a high-key Home cutaway graybox;
 - tiered antialiasing, shadows, DPR, and resolution caps;
 - a 42° architectural camera with orbit, pan, zoom, and recenter.
@@ -72,9 +73,10 @@ P04 replaces the single spiral fixture with a stable seeded topology descriptor
 for Branching, Ribbon, and Radial families. NCA channels decode through one pure
 lifecycle function into position offsets, thickness, curvature, connectivity,
 ribbon weight, opacity, and event-gated wavelength/intensity. The packer trims
-or collapses inactive connections inside existing buffers; it never rebuilds a
-scene object during the update loop. Importance-ranked Overview, Mid, and Macro
-LODs preserve cores, junctions, terminals, and silhouette-defining edges.
+or collapses inactive connections and facets inside existing buffers; it never
+rebuilds a scene object during the update loop. Importance-ranked Overview, Mid,
+and Macro LODs preserve cores, junctions, terminals, and silhouette-defining
+edges and planes.
 
 P03 adds a pure wavelength-to-linear-sRGB core and a presentation-only spectral
 layer. HDR emitter geometry is separate from neutral geometry, bloom thresholds

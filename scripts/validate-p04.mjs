@@ -48,7 +48,7 @@ for (const term of ['feeding', 'starving', 'damaged', 'mutating', 'dying', 'deat
 }
 
 const packer = read('src/rendering/vectorBufferPacker.ts');
-for (const term of ['nodeWavelengths', 'edgeActivity', 'stateOverride', 'lodImportanceThreshold']) {
+for (const term of ['nodeWavelengths', 'edgeActivity', 'facePositions', 'stateOverride', 'lodImportanceThreshold']) {
   if (!packer.includes(term)) failures.push(`Pooled vector packer is missing: ${term}`);
 }
 
