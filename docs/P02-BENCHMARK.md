@@ -63,7 +63,7 @@ throughput proxies and cannot replace the full paired frame result.
 | First usable canvas, warm HTTP cache | ≤2.5 s | ≤4 s | Record startup phases and asset bytes |
 | Renderer draw calls for P02 fixture | ≤12 | ≤12 | Preserve instancing/batching |
 
-The P02 production build measured 146.8 KB gzip JavaScript, 1.23 KB gzip CSS,
+The P02 production build measured 147.2 KB gzip JavaScript, 1.23 KB gzip CSS,
 and 0.36 KB gzip HTML before trained weights. The uncompressed Vite warning is
 tracked, but the transfer budget passes.
 
@@ -78,8 +78,10 @@ Then open one of:
 
 - `http://127.0.0.1:5173/?benchmark=1&quality=desktop`
 - `http://127.0.0.1:5173/?benchmark=1&quality=mobile`
+- `http://127.0.0.1:5173/?benchmark=1&quality=mobile&duration=300` for the thermal gate
 
 The browser route warms for two seconds, samples the paired visible workload for
-eight seconds, runs both WebGL2 probes, and exposes a **Download JSON** action.
+eight seconds by default (or 300 seconds for the thermal route), runs both WebGL2
+probes, records automatic tier changes, and exposes a **Download JSON** action.
 The downloaded physical Mac and iPhone results are the remaining evidence needed
 to mark the corresponding issue checks complete.

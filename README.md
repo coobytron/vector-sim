@@ -71,4 +71,5 @@ npm run build
 Open `?benchmark=1&quality=desktop` or `?benchmark=1&quality=mobile` in the
 browser build to run the paired learned-update/vector-render benchmark and
 download its JSON evidence. The benchmark also records WebGL2 ping-pong and
-transform-feedback throughput probes on the current device.
+transform-feedback throughput probes on the current device. Use
+`?benchmark=1&quality=mobile&duration=300` for the five-minute thermal gate.

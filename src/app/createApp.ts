@@ -1,4 +1,7 @@
-import { BrowserBenchmarkSession } from '../benchmark/browserBenchmark';
+import {
+  BrowserBenchmarkSession,
+  parseBenchmarkDurationSeconds,
+} from '../benchmark/browserBenchmark';
 import { runGpuMicrobenchmarks } from '../benchmark/gpuMicrobenchmarks';
 import { detectCapabilities, selectQualityTier } from '../platform/capabilities';
 import { VectorRenderer } from '../rendering/vectorRenderer';
@@ -18,6 +21,7 @@ export function createApp(root: HTMLElement): VectorSimApp {
   const shell = createShell(root, tier.name);
   const simulation = new HeadlessSimulation({ tier, seed: 0x53504543 });
   const benchmarkRequested = parameters.get('benchmark') === '1';
+  const benchmarkSeconds = parseBenchmarkDurationSeconds(parameters.get('duration'));
 
   if (!capabilities.webgl2) {
     shell.canvas.hidden = true;
@@ -34,9 +38,11 @@ export function createApp(root: HTMLElement): VectorSimApp {
   const renderer = new VectorRenderer(shell.canvas, tier, simulation.snapshot);
   const stepper = new FixedStepper(1 / 30, 4);
   const benchmark = benchmarkRequested
-    ? new BrowserBenchmarkSession(tier, capabilities)
+    ? new BrowserBenchmarkSession(tier, capabilities, 2_000, benchmarkSeconds * 1_000)
     : undefined;
-  const benchmarkPanel = benchmarkRequested ? showBenchmarkProgress(shell.frame, 10) : undefined;
+  const benchmarkPanel = benchmarkRequested
+    ? showBenchmarkProgress(shell.frame, benchmarkSeconds + 2)
+    : undefined;
   let animationFrame = 0;
   let paused = false;
   let disposed = false;

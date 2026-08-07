@@ -39,6 +39,7 @@ export function createShell(root: HTMLElement, quality: QualityTierName): ShellE
           </select>
         </label>
         <a href="?benchmark=1&quality=${quality}">Run benchmark</a>
+        <a href="?benchmark=1&quality=mobile&duration=300">5 min thermal</a>
       </footer>
     </main>
   `;
@@ -71,4 +72,3 @@ export function showFallback(target: HTMLElement, message: string, detail: strin
     </div>
   `;
 }
-

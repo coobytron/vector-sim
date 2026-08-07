@@ -30,6 +30,8 @@ export function showBenchmarkResult(panel: HTMLElement, result: BrowserBenchmark
       <div><dt>P99 frame</dt><dd>${frame.p99.toFixed(2)} ms</dd></div>
       <div><dt>Worst frame</dt><dd>${frame.max.toFixed(2)} ms</dd></div>
       <div><dt>Frames</dt><dd>${result.frames}</dd></div>
+      <div><dt>Duration</dt><dd>${(result.durationMs / 1000).toFixed(0)} s</dd></div>
+      <div><dt>Tier changes</dt><dd>${result.automaticQualityChanges}</dd></div>
       <div><dt>State hash</dt><dd>${result.stateHash}</dd></div>
       ${probes}
     </dl>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { summarize } from '../src/benchmark/statistics';
+import { parseBenchmarkDurationSeconds } from '../src/benchmark/browserBenchmark';
 
 describe('benchmark statistics', () => {
   it('reports median, tail percentiles, worst frame, and mean', () => {
@@ -12,3 +13,12 @@ describe('benchmark statistics', () => {
   });
 });
 
+describe('browser benchmark duration', () => {
+  it('defaults, rounds, and caps requested samples', () => {
+    expect(parseBenchmarkDurationSeconds(null)).toBe(8);
+    expect(parseBenchmarkDurationSeconds('30.4')).toBe(30);
+    expect(parseBenchmarkDurationSeconds('1')).toBe(5);
+    expect(parseBenchmarkDurationSeconds('900')).toBe(300);
+    expect(parseBenchmarkDurationSeconds('nope')).toBe(8);
+  });
+});

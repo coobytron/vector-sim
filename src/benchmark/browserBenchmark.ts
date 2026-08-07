@@ -12,6 +12,7 @@ export interface BrowserBenchmarkResult {
   durationMs: number;
   frames: number;
   simulationTicks: number;
+  automaticQualityChanges: number;
   viewport: {
     cssWidth: number;
     cssHeight: number;
@@ -31,6 +32,13 @@ export interface BrowserBenchmarkResult {
   renderer: RenderMetrics;
   stateHash: string;
   gpuProbes?: GpuProbeResult[];
+}
+
+export function parseBenchmarkDurationSeconds(value: string | null): number {
+  if (value === null || value.trim() === '') return 8;
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds)) return 8;
+  return Math.min(300, Math.max(5, Math.round(seconds)));
 }
 
 interface Sample {
@@ -86,6 +94,7 @@ export class BrowserBenchmarkSession {
       durationMs: this.sampleMs,
       frames: this.work.length,
       simulationTicks: this.simulationTicks,
+      automaticQualityChanges: 0,
       viewport: {
         cssWidth: window.innerWidth,
         cssHeight: window.innerHeight,
