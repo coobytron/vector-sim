@@ -1,0 +1,14 @@
+{
+  "schema": "vector-sim-spectral-reference-v1",
+  "width": 1536,
+  "height": 1024,
+  "sha256": "9456ea14f32ba42d5762059b9ed0f9a8150f7448d1ed8bce60ad18aad77e06f3",
+  "wavelengthRangeNm": [
+    380,
+    780
+  ],
+  "exposure": 0.86,
+  "toneMap": "Three.js ACESFilmicToneMapping",
+  "outputTransfer": "sRGB",
+  "outputEncodes": 1
+}

@@ -1,4 +1,6 @@
 import type { QualityTierName } from '../simulation/types';
+import type { RenderMode } from '../rendering/vectorRenderer';
+import type { SpectralLookName } from '../spectral/looks';
 
 export interface ShellElements {
   canvas: HTMLCanvasElement;
@@ -7,16 +9,25 @@ export interface ShellElements {
   performance: HTMLElement;
   pauseButton: HTMLButtonElement;
   recenterButton: HTMLButtonElement;
+  captureButton: HTMLButtonElement;
   qualitySelect: HTMLSelectElement;
+  lookSelect: HTMLSelectElement;
   fallback: HTMLElement;
 }
 
-export function createShell(root: HTMLElement, quality: QualityTierName): ShellElements {
+export function createShell(
+  root: HTMLElement,
+  quality: QualityTierName,
+  mode: RenderMode,
+  look: SpectralLookName,
+): ShellElements {
+  const modeLink = mode === 'calibration' ? '?' : '?calibration=1';
+  const modeLabel = mode === 'calibration' ? 'Home' : 'Calibration';
   root.innerHTML = `
     <main class="app-shell">
       <header class="masthead">
         <div>
-          <p class="eyebrow">Vector Sim / P02</p>
+          <p class="eyebrow">Vector Sim / P03${mode === 'calibration' ? ' / Calibration' : ''}</p>
           <h1>Spectral Homestead</h1>
         </div>
         <p class="status" data-status>Preparing runtime…</p>
@@ -31,6 +42,7 @@ export function createShell(root: HTMLElement, quality: QualityTierName): ShellE
       <footer class="controls" aria-label="Simulation controls">
         <button type="button" data-pause>Pause</button>
         <button type="button" data-recenter>Recenter</button>
+        <button type="button" data-capture>Save PNG</button>
         <label>
           <span>Quality</span>
           <select data-quality>
@@ -38,6 +50,15 @@ export function createShell(root: HTMLElement, quality: QualityTierName): ShellE
             <option value="mobile" ${quality === 'mobile' ? 'selected' : ''}>Mobile</option>
           </select>
         </label>
+        <label>
+          <span>Look</span>
+          <select data-look>
+            <option value="porcelain" ${look === 'porcelain' ? 'selected' : ''}>Porcelain</option>
+            <option value="technical" ${look === 'technical' ? 'selected' : ''}>Technical</option>
+            <option value="ghost" ${look === 'ghost' ? 'selected' : ''}>Ghost</option>
+          </select>
+        </label>
+        <a href="${modeLink}">${modeLabel}</a>
         <a href="?benchmark=1&quality=${quality}">Run benchmark</a>
         <a href="?benchmark=1&quality=mobile&duration=300">5 min thermal</a>
       </footer>
@@ -57,7 +78,9 @@ export function createShell(root: HTMLElement, quality: QualityTierName): ShellE
     performance: requireElement<HTMLElement>('[data-performance]'),
     pauseButton: requireElement<HTMLButtonElement>('[data-pause]'),
     recenterButton: requireElement<HTMLButtonElement>('[data-recenter]'),
+    captureButton: requireElement<HTMLButtonElement>('[data-capture]'),
     qualitySelect: requireElement<HTMLSelectElement>('[data-quality]'),
+    lookSelect: requireElement<HTMLSelectElement>('[data-look]'),
     fallback: requireElement<HTMLElement>('[data-fallback]'),
   };
 }

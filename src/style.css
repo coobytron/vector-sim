@@ -134,6 +134,116 @@ select:hover,
   backdrop-filter: blur(16px);
 }
 
+.spectral-panel {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  width: min(390px, calc(100% - 28px));
+  max-height: calc(100% - 28px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 40px rgba(42, 42, 46, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.spectral-panel__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.spectral-panel h2 {
+  margin: 3px 0 0;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.spectral-chip {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(32, 32, 36, 0.12);
+  border-radius: 50%;
+  box-shadow: 0 0 16px currentColor;
+}
+
+.spectral-slider {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.spectral-slider > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.spectral-slider output {
+  color: #202024;
+}
+
+.spectral-slider input {
+  width: 100%;
+  accent-color: #595960;
+}
+
+.spectral-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0 0;
+}
+
+.spectral-values div {
+  min-width: 0;
+  padding-top: 7px;
+  border-top: 1px solid var(--line);
+}
+
+.spectral-values dt,
+.spectral-stage,
+.semantic-key {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.spectral-values dd {
+  overflow: hidden;
+  margin: 4px 0 0;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spectral-stage {
+  margin: 16px 0 0;
+  line-height: 1.5;
+}
+
+.semantic-key {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
 .benchmark-panel h2 {
   margin: 4px 0 12px;
   font-size: 18px;
@@ -247,6 +357,14 @@ select:hover,
 
   .viewport {
     border-radius: 18px;
+  }
+
+  .spectral-panel {
+    left: 8px;
+    bottom: 8px;
+    width: min(340px, calc(100% - 16px));
+    max-height: 62%;
+    padding: 14px;
   }
 }
 

@@ -4,11 +4,13 @@ import {
 } from '../benchmark/browserBenchmark';
 import { runGpuMicrobenchmarks } from '../benchmark/gpuMicrobenchmarks';
 import { detectCapabilities, selectQualityTier } from '../platform/capabilities';
-import { VectorRenderer } from '../rendering/vectorRenderer';
+import { VectorRenderer, type RenderMode } from '../rendering/vectorRenderer';
 import { FixedStepper } from '../simulation/fixedStepper';
 import { HeadlessSimulation } from '../simulation/headlessSimulation';
 import { showBenchmarkProgress, showBenchmarkResult } from '../ui/benchmarkPanel';
 import { createShell, showFallback } from '../ui/shell';
+import { createSpectralPanel } from '../ui/spectralPanel';
+import { selectSpectralLook } from '../spectral/looks';
 
 export interface VectorSimApp {
   dispose(): void;
@@ -18,7 +20,9 @@ export function createApp(root: HTMLElement): VectorSimApp {
   const parameters = new URLSearchParams(window.location.search);
   const capabilities = detectCapabilities();
   const tier = selectQualityTier(capabilities, parameters.get('quality'));
-  const shell = createShell(root, tier.name);
+  const mode: RenderMode = parameters.get('calibration') === '1' ? 'calibration' : 'home';
+  let look = selectSpectralLook(parameters.get('look'));
+  const shell = createShell(root, tier.name, mode, look.name);
   const simulation = new HeadlessSimulation({ tier, seed: 0x53504543 });
   const benchmarkRequested = parameters.get('benchmark') === '1';
   const benchmarkSeconds = parseBenchmarkDurationSeconds(parameters.get('duration'));
@@ -35,7 +39,7 @@ export function createApp(root: HTMLElement): VectorSimApp {
     return { dispose: () => undefined };
   }
 
-  const renderer = new VectorRenderer(shell.canvas, tier, simulation.snapshot);
+  const renderer = new VectorRenderer(shell.canvas, tier, simulation.snapshot, { mode, look });
   const stepper = new FixedStepper(1 / 30, 4);
   const benchmark = benchmarkRequested
     ? new BrowserBenchmarkSession(tier, capabilities, 2_000, benchmarkSeconds * 1_000)
@@ -48,18 +52,43 @@ export function createApp(root: HTMLElement): VectorSimApp {
   let disposed = false;
   let frameCounter = 0;
   let readoutStart = performance.now();
+  const spectralPanel = mode === 'calibration' && !benchmarkRequested
+    ? createSpectralPanel(
+        shell.frame,
+        look,
+        (sample) => renderer.setSpectralProbe(sample),
+        (exposure) => renderer.setExposure(exposure),
+      )
+    : undefined;
 
-  shell.status.textContent = `${tier.name} tier · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2 path'}`;
+  shell.status.textContent = `${tier.name} · ${look.label} · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2'}`;
   shell.pauseButton.addEventListener('click', () => {
     paused = !paused;
     shell.pauseButton.textContent = paused ? 'Resume' : 'Pause';
     if (!paused) stepper.reset(performance.now() / 1000);
   });
   shell.recenterButton.addEventListener('click', () => renderer.recenter());
+  shell.captureButton.addEventListener('click', () => {
+    shell.captureButton.disabled = true;
+    shell.captureButton.textContent = 'Saving…';
+    renderer.capturePng().finally(() => {
+      shell.captureButton.disabled = false;
+      shell.captureButton.textContent = 'Save PNG';
+    });
+  });
   shell.qualitySelect.addEventListener('change', () => {
     const url = new URL(window.location.href);
     url.searchParams.set('quality', shell.qualitySelect.value);
     window.location.assign(url);
+  });
+  shell.lookSelect.addEventListener('change', () => {
+    look = selectSpectralLook(shell.lookSelect.value);
+    renderer.setLook(look);
+    spectralPanel?.setLook(look);
+    const url = new URL(window.location.href);
+    url.searchParams.set('look', look.name);
+    window.history.replaceState({}, '', url);
+    shell.status.textContent = `${tier.name} · ${look.label} · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2'}`;
   });
 
   const onVisibility = (): void => {
@@ -106,6 +135,7 @@ export function createApp(root: HTMLElement): VectorSimApp {
       disposed = true;
       cancelAnimationFrame(animationFrame);
       document.removeEventListener('visibilitychange', onVisibility);
+      spectralPanel?.dispose();
       renderer.dispose();
     },
   };
