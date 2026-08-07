@@ -1,0 +1,36 @@
+{
+  "schema": "vector-sim-organism-reference-v1",
+  "width": 1536,
+  "height": 1024,
+  "seed": 1397769539,
+  "families": [
+    "branching",
+    "ribbon",
+    "radial"
+  ],
+  "states": [
+    "dormant",
+    "feeding",
+    "starving",
+    "damaged",
+    "mutating",
+    "dying",
+    "death",
+    "regenerating"
+  ],
+  "looks": [
+    "porcelain",
+    "technical",
+    "ghost"
+  ],
+  "cameraDistances": [
+    "overview",
+    "mid",
+    "macro"
+  ],
+  "captureRoute": "?organisms=1&seed=1397769539&tick=180&state=feeding&look=porcelain&distance=mid&nca=frozen",
+  "files": {
+    "organism-morphology-reference.png": "f60d46e29ec21093dc96c94962c24b664d50930c7a336232f3c8447799506b9f",
+    "organism-state-reference.png": "6418d5f7fde3c547f17e49a7709ca7a2fbdaca407aaaeeb8e17497d7ef1f3e11"
+  }
+}

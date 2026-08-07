@@ -14,10 +14,12 @@ or an explicitly enabled inspection view.
 
 ## Current phase
 
-**P03 — Linear-light spectral color.** The deterministic runtime and static
-Three.js foundation are merged. P03 converts wavelength into linear sRGB, keeps
-emission and bloom in linear light, uses fixed ACES tone mapping, and encodes
-sRGB once for the live canvas and captures.
+**P04 — 3D vector-agent visual system.** Branching, Ribbon, and Radial organisms
+now share one graph/NCA decode contract. The renderer keeps stable pooled node,
+edge, ribbon, and direction-marker geometry while lifecycle state changes
+thickness, curvature, connectivity, opacity, and localized spectral emission.
+
+![P04 vector organism grammar](assets/reference/organism-morphology-reference.png)
 
 The non-negotiable direction is:
 
@@ -43,6 +45,7 @@ The non-negotiable direction is:
 - [P02 runtime decision](docs/adr/0001-runtime-backend.md)
 - [P03 spectral color pipeline](docs/P03-SPECTRAL-COLOR.md)
 - [P03 output decision](docs/adr/0002-linear-spectral-output.md)
+- [P04 vector-agent system](docs/P04-VECTOR-AGENTS.md)
 
 ## Phase order
 
@@ -68,6 +71,7 @@ The production output is a static bundle in `dist/`; it has no server runtime.
 npm run qa
 npm run benchmark:node
 npm run capture:spectral
+npm run capture:organisms
 npm run build
 ```
 
@@ -80,3 +84,7 @@ transform-feedback throughput probes on the current device. Use
 Open `?calibration=1` for the interactive wavelength/intensity/exposure board.
 Use `look=porcelain`, `look=technical`, or `look=ghost` to compare the spectral
 response profiles, and **Save PNG** to capture the final post-processed canvas.
+
+Open `?organisms=1` for the P04 organism lab. Stable comparison routes can set
+`seed`, `tick`, `state`, `look`, `distance`, and `nca=frozen`; the on-screen
+selectors cover lifecycle state, camera distance, NCA mode, and all three looks.

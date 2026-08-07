@@ -11,7 +11,8 @@ truth.
 flowchart TD
   A[Seed + quality tier] --> B[Headless graph simulation]
   B --> C[30 Hz typed-array snapshot]
-  C --> D[Vector buffer packer]
+  C --> H[Morphology + lifecycle decode]
+  H --> D[Vector buffer packer]
   D --> E[Three.js WebGL2 renderer]
   E --> F[Canvas + browser benchmark]
   C --> G[State hash + tests]
@@ -27,6 +28,7 @@ requiring a DOM or GPU in deterministic tests.
 |---|---|---|
 | `src/simulation` | Fixed timestep, graph state, seeded gates, lifecycle fixture, hashes | No |
 | `src/nca` | Versioned learned-update fixture and model metadata | No |
+| `src/organisms` | Seeded morphology topology, lifecycle decode, LOD, and capture-route parsing | No |
 | `src/rendering` | Vector buffer packing, Three.js scene, inspectable GLSL probes | Packer: no; renderer: yes |
 | `src/spectral` | Wavelength conversion, semantic events, linear-light look profiles | No |
 | `src/environments` | Home graybox presentation geometry | Yes |
@@ -65,6 +67,14 @@ The selected P02 renderer uses:
 - a high-key Home cutaway graybox;
 - tiered antialiasing, shadows, DPR, and resolution caps;
 - a 42° architectural camera with orbit, pan, zoom, and recenter.
+
+P04 replaces the single spiral fixture with a stable seeded topology descriptor
+for Branching, Ribbon, and Radial families. NCA channels decode through one pure
+lifecycle function into position offsets, thickness, curvature, connectivity,
+ribbon weight, opacity, and event-gated wavelength/intensity. The packer trims
+or collapses inactive connections inside existing buffers; it never rebuilds a
+scene object during the update loop. Importance-ranked Overview, Mid, and Macro
+LODs preserve cores, junctions, terminals, and silhouette-defining edges.
 
 P03 adds a pure wavelength-to-linear-sRGB core and a presentation-only spectral
 layer. HDR emitter geometry is separate from neutral geometry, bloom thresholds

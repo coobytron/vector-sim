@@ -66,6 +66,18 @@ select:hover,
   gap: 16px;
 }
 
+.controls {
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.controls label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .masthead h1,
 .fatal h1,
 .fallback h2 {
@@ -120,6 +132,41 @@ select:hover,
   border-radius: 999px;
   background: var(--panel);
   backdrop-filter: blur(12px);
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    gap: 10px;
+  }
+
+  .masthead {
+    align-items: flex-start;
+  }
+
+  .status {
+    max-width: 52%;
+    text-align: right;
+  }
+
+  .controls {
+    max-height: 122px;
+    overflow: auto;
+    gap: 7px;
+    padding-bottom: 2px;
+  }
+
+  button,
+  select,
+  .controls a {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+
+  .controls label span {
+    display: none;
+  }
 }
 
 .benchmark-panel {

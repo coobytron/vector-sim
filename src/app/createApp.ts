@@ -3,6 +3,13 @@ import {
   parseBenchmarkDurationSeconds,
 } from '../benchmark/browserBenchmark';
 import { runGpuMicrobenchmarks } from '../benchmark/gpuMicrobenchmarks';
+import {
+  parseCaptureDistance,
+  parseCaptureState,
+  parseCaptureTick,
+  parseNcaMode,
+  parseRunSeed,
+} from '../organisms/captureRoute';
 import { detectCapabilities, selectQualityTier } from '../platform/capabilities';
 import { VectorRenderer, type RenderMode } from '../rendering/vectorRenderer';
 import { FixedStepper } from '../simulation/fixedStepper';
@@ -20,10 +27,32 @@ export function createApp(root: HTMLElement): VectorSimApp {
   const parameters = new URLSearchParams(window.location.search);
   const capabilities = detectCapabilities();
   const tier = selectQualityTier(capabilities, parameters.get('quality'));
-  const mode: RenderMode = parameters.get('calibration') === '1' ? 'calibration' : 'home';
+  const mode: RenderMode = parameters.get('organisms') === '1'
+    ? 'organisms'
+    : parameters.get('calibration') === '1'
+      ? 'calibration'
+      : 'home';
   let look = selectSpectralLook(parameters.get('look'));
-  const shell = createShell(root, tier.name, mode, look.name);
-  const simulation = new HeadlessSimulation({ tier, seed: 0x53504543 });
+  const seed = parseRunSeed(parameters.get('seed'));
+  const ncaMode = parseNcaMode(parameters.get('nca'));
+  const captureTick = mode === 'organisms' ? parseCaptureTick(parameters.get('tick')) : undefined;
+  const captureState = mode === 'organisms' ? parseCaptureState(parameters.get('state')) : undefined;
+  const captureDistance = mode === 'organisms'
+    ? parseCaptureDistance(parameters.get('distance'))
+    : undefined;
+  const shell = createShell(
+    root,
+    tier.name,
+    mode,
+    look.name,
+    captureState,
+    captureDistance ?? 'mid',
+    ncaMode,
+  );
+  const simulation = new HeadlessSimulation({ tier, seed, ncaMode });
+  if (captureTick !== undefined) {
+    for (let tick = 0; tick < captureTick; tick += 1) simulation.step();
+  }
   const benchmarkRequested = parameters.get('benchmark') === '1';
   const benchmarkSeconds = parseBenchmarkDurationSeconds(parameters.get('duration'));
 
@@ -39,7 +68,12 @@ export function createApp(root: HTMLElement): VectorSimApp {
     return { dispose: () => undefined };
   }
 
-  const renderer = new VectorRenderer(shell.canvas, tier, simulation.snapshot, { mode, look });
+  const renderer = new VectorRenderer(shell.canvas, tier, simulation.snapshot, {
+    mode,
+    look,
+    captureState,
+    captureDistance,
+  });
   const stepper = new FixedStepper(1 / 30, 4);
   const benchmark = benchmarkRequested
     ? new BrowserBenchmarkSession(tier, capabilities, 2_000, benchmarkSeconds * 1_000)
@@ -48,7 +82,7 @@ export function createApp(root: HTMLElement): VectorSimApp {
     ? showBenchmarkProgress(shell.frame, benchmarkSeconds + 2)
     : undefined;
   let animationFrame = 0;
-  let paused = false;
+  let paused = captureTick !== undefined;
   let disposed = false;
   let frameCounter = 0;
   let readoutStart = performance.now();
@@ -61,7 +95,11 @@ export function createApp(root: HTMLElement): VectorSimApp {
       )
     : undefined;
 
-  shell.status.textContent = `${tier.name} · ${look.label} · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2'}`;
+  if (paused) shell.pauseButton.textContent = 'Resume';
+  const captureStatus = mode === 'organisms'
+    ? ` · ${captureState ?? 'live state'} · seed ${seed} · ${ncaMode} NCA`
+    : '';
+  shell.status.textContent = `${tier.name} · ${look.label}${captureStatus} · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2'}`;
   shell.pauseButton.addEventListener('click', () => {
     paused = !paused;
     shell.pauseButton.textContent = paused ? 'Resume' : 'Pause';
@@ -88,7 +126,23 @@ export function createApp(root: HTMLElement): VectorSimApp {
     const url = new URL(window.location.href);
     url.searchParams.set('look', look.name);
     window.history.replaceState({}, '', url);
-    shell.status.textContent = `${tier.name} · ${look.label} · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2'}`;
+    shell.status.textContent = `${tier.name} · ${look.label}${captureStatus} · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2'}`;
+  });
+  shell.stateSelect?.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    if (shell.stateSelect?.value) url.searchParams.set('state', shell.stateSelect.value);
+    else url.searchParams.delete('state');
+    window.location.assign(url);
+  });
+  shell.distanceSelect?.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('distance', shell.distanceSelect?.value ?? 'mid');
+    window.location.assign(url);
+  });
+  shell.ncaSelect?.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('nca', shell.ncaSelect?.value ?? 'live');
+    window.location.assign(url);
   });
 
   const onVisibility = (): void => {

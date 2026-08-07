@@ -1,9 +1,13 @@
 import { ReferenceNcaKernel } from '../nca/referenceKernel';
+import { createMorphologyTopology, NO_PARENT } from '../organisms/morphology';
+import type { MorphologyTopology } from '../organisms/types';
 import { counterRandom, SeededRandom } from './prng';
 import { hashState } from './hashState';
 import type { SimulationConfig, SimulationSnapshot } from './types';
 
 const POSITION_COMPONENTS = 3;
+const MAX_GRAPH_DEGREE = 8;
+const NO_NEIGHBOR = 0xffff_ffff;
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
@@ -24,7 +28,9 @@ export class HeadlessSimulation {
   readonly active: Uint8Array;
   readonly energy: Float32Array;
   readonly health: Float32Array;
+  readonly previousHealth: Float32Array;
   readonly edges: Uint32Array;
+  readonly topology: MorphologyTopology;
 
   private positions: Float32Array;
   private previousPositions: Float32Array;
@@ -38,11 +44,14 @@ export class HeadlessSimulation {
   private readonly kernel: ReferenceNcaKernel;
   private readonly latentDelta: Float32Array;
   private readonly acceleration: Float32Array;
+  private readonly adjacency: Uint32Array;
+  private readonly degree: Uint8Array;
   private tickValue = 0;
 
   constructor(readonly config: SimulationConfig) {
     this.channels = config.hiddenChannels ?? 24;
     this.nodeCount = config.tier.organisms * config.tier.slotsPerOrganism;
+    this.topology = createMorphologyTopology(config.tier, config.seed);
     this.positions = new Float32Array(this.nodeCount * POSITION_COMPONENTS);
     this.previousPositions = new Float32Array(this.positions.length);
     this.nextPositions = new Float32Array(this.positions.length);
@@ -55,7 +64,12 @@ export class HeadlessSimulation {
     this.active = new Uint8Array(this.nodeCount);
     this.energy = new Float32Array(this.nodeCount);
     this.health = new Float32Array(this.nodeCount);
-    this.edges = this.createEdges();
+    this.previousHealth = new Float32Array(this.nodeCount);
+    this.edges = this.topology.edges;
+    this.adjacency = new Uint32Array(this.nodeCount * MAX_GRAPH_DEGREE);
+    this.adjacency.fill(NO_NEIGHBOR);
+    this.degree = new Uint8Array(this.nodeCount);
+    this.buildAdjacency();
     this.kernel = new ReferenceNcaKernel(this.channels, config.learnedWidth ?? 12);
     this.latentDelta = new Float32Array(this.channels);
     this.acceleration = new Float32Array(3);
@@ -69,17 +83,23 @@ export class HeadlessSimulation {
   get snapshot(): SimulationSnapshot {
     return {
       tick: this.tickValue,
+      channels: this.channels,
+      ncaMode: this.config.ncaMode ?? 'live',
       active: this.active,
       positions: this.positions,
       previousPositions: this.previousPositions,
+      latent: this.latent,
       energy: this.energy,
       health: this.health,
+      previousHealth: this.previousHealth,
       edges: this.edges,
+      topology: this.topology,
     };
   }
 
   step(dt = 1 / 30): void {
     this.previousPositions.set(this.positions);
+    this.previousHealth.set(this.health);
     this.aggregateNeighbors();
 
     const slots = this.config.tier.slotsPerOrganism;
@@ -101,7 +121,7 @@ export class HeadlessSimulation {
       const kill = radialField(x, y, z, -1.7, 1.0, -0.4);
       const eligible = counterRandom(this.config.seed, organism, localCell, this.tickValue) < 0.5;
 
-      if (eligible) {
+      if (eligible && (this.config.ncaMode ?? 'live') === 'live') {
         this.kernel.evaluate(
           this.latent,
           latentOffset,
@@ -126,7 +146,11 @@ export class HeadlessSimulation {
 
       const idleDrain = 0.012;
       this.energy[cell] = clamp01((this.energy[cell] ?? 0) + 0.2 * food * dt - idleDrain * dt);
-      this.health[cell] = clamp01((this.health[cell] ?? 0) - 0.35 * kill * dt);
+      const repairGate = clamp01(((this.latent[latentOffset + 7] ?? 0) + 1) * 0.5);
+      const repair = (this.energy[cell] ?? 0) > 0.35 && kill < 0.05
+        ? 0.08 * repairGate * dt
+        : 0;
+      this.health[cell] = clamp01((this.health[cell] ?? 0) - 0.35 * kill * dt + repair);
 
       for (let axis = 0; axis < POSITION_COMPONENTS; axis += 1) {
         const offset = positionOffset + axis;
@@ -162,55 +186,52 @@ export class HeadlessSimulation {
 
   stateHash(): string {
     return hashState(
-      [this.active, this.positions, this.velocities, this.latent, this.energy, this.health],
+      [
+        this.active,
+        this.positions,
+        this.velocities,
+        this.latent,
+        this.energy,
+        this.health,
+        this.edges,
+        this.topology.nodeParent,
+      ],
       this.tickValue,
     );
   }
 
   private initialize(): void {
     const random = new SeededRandom(this.config.seed);
-    const slots = this.config.tier.slotsPerOrganism;
-    for (let organism = 0; organism < this.config.tier.organisms; organism += 1) {
-      const angle = (organism / this.config.tier.organisms) * Math.PI * 2;
-      const centerX = Math.cos(angle) * 1.15;
-      const centerZ = Math.sin(angle) * 0.75;
-      for (let localCell = 0; localCell < slots; localCell += 1) {
-        const cell = organism * slots + localCell;
-        const positionOffset = cell * POSITION_COMPONENTS;
-        const latentOffset = cell * this.channels;
-        const branch = Math.floor(localCell / 16);
-        const along = localCell % 16;
-        const phase = along * 0.42 + branch * 0.8 + organism;
-        const radius = 0.08 + branch * 0.012;
-        this.positions[positionOffset] = centerX + Math.cos(phase) * radius + branch * 0.025;
-        this.positions[positionOffset + 1] = 0.35 + along * 0.055 + branch * 0.035;
-        this.positions[positionOffset + 2] = centerZ + Math.sin(phase) * radius;
-        this.active[cell] = 1;
-        this.energy[cell] = 0.65;
-        this.health[cell] = 1;
-        for (let channel = 0; channel < this.channels; channel += 1) {
-          this.latent[latentOffset + channel] = random.signed() * 0.18;
-        }
+    this.positions.set(this.topology.restPositions);
+    for (let cell = 0; cell < this.nodeCount; cell += 1) {
+      const latentOffset = cell * this.channels;
+      this.active[cell] = 1;
+      this.energy[cell] = 0.65;
+      this.health[cell] = 1;
+      for (let channel = 0; channel < this.channels; channel += 1) {
+        this.latent[latentOffset + channel] = random.signed() * 0.18;
       }
     }
     this.previousPositions.set(this.positions);
     this.nextPositions.set(this.positions);
     this.restPositions.set(this.positions);
+    this.previousHealth.set(this.health);
     this.nextLatent.set(this.latent);
   }
 
   private aggregateNeighbors(): void {
-    const slots = this.config.tier.slotsPerOrganism;
     for (let cell = 0; cell < this.nodeCount; cell += 1) {
-      const localCell = cell % slots;
       const latentOffset = cell * this.channels;
-      const previous = localCell > 0 ? cell - 1 : cell;
-      const next = localCell + 1 < slots ? cell + 1 : cell;
-      const previousOffset = previous * this.channels;
-      const nextOffset = next * this.channels;
+      const degree = this.degree[cell] ?? 0;
       for (let channel = 0; channel < this.channels; channel += 1) {
-        this.neighborLatent[latentOffset + channel] =
-          ((this.latent[previousOffset + channel] ?? 0) + (this.latent[nextOffset + channel] ?? 0)) * 0.5;
+        let total = 0;
+        for (let neighborIndex = 0; neighborIndex < degree; neighborIndex += 1) {
+          const neighbor = this.adjacency[cell * MAX_GRAPH_DEGREE + neighborIndex] ?? cell;
+          total += this.latent[neighbor * this.channels + channel] ?? 0;
+        }
+        this.neighborLatent[latentOffset + channel] = degree > 0
+          ? total / degree
+          : this.latent[latentOffset + channel] ?? 0;
       }
     }
   }
@@ -227,18 +248,22 @@ export class HeadlessSimulation {
     }
   }
 
-  private createEdges(): Uint32Array {
-    const edgePairs: number[] = [];
-    const slots = this.config.tier.slotsPerOrganism;
-    for (let organism = 0; organism < this.config.tier.organisms; organism += 1) {
-      const start = organism * slots;
-      for (let localCell = 1; localCell < slots; localCell += 1) {
-        edgePairs.push(start + localCell - 1, start + localCell);
-        if (localCell >= 16 && localCell % 16 === 0) {
-          edgePairs.push(start + localCell - 16, start + localCell);
-        }
-      }
+  private buildAdjacency(): void {
+    for (let index = 0; index < this.edges.length; index += 2) {
+      const start = this.edges[index] ?? NO_PARENT;
+      const end = this.edges[index + 1] ?? NO_PARENT;
+      if (start === NO_PARENT || end === NO_PARENT) continue;
+      this.addNeighbor(start, end);
+      this.addNeighbor(end, start);
     }
-    return Uint32Array.from(edgePairs);
+  }
+
+  private addNeighbor(cell: number, neighbor: number): void {
+    const degree = this.degree[cell] ?? 0;
+    if (degree >= MAX_GRAPH_DEGREE) {
+      throw new RangeError(`Morphology node ${cell} exceeds maximum graph degree ${MAX_GRAPH_DEGREE}.`);
+    }
+    this.adjacency[cell * MAX_GRAPH_DEGREE + degree] = neighbor;
+    this.degree[cell] = degree + 1;
   }
 }
