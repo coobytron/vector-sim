@@ -61,9 +61,12 @@ export interface MorphologyTopology {
   nodeOrganism: Uint16Array;
   nodeParent: Uint32Array;
   nodeRole: Uint8Array;
+  nodeImportance: Uint8Array;
   edges: Uint32Array;
   edgeKind: Uint8Array;
   edgeImportance: Uint8Array;
+  faces: Uint32Array;
+  faceImportance: Uint8Array;
 }
 
 export interface VisualDecodeInput {

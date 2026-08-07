@@ -1,7 +1,7 @@
 {
   "schema": "vector-sim-p04-node-benchmark-v1",
-  "timestamp": "2026-08-07T17:18:48.851Z",
-  "measurementClass": "CPU graph-NCA reference plus P04 morphology decode and pooled vector-buffer preparation; no GPU rasterization",
+  "timestamp": "2026-08-07T19:32:04.275Z",
+  "measurementClass": "CPU graph-NCA reference plus P04 morphology decode and pooled node, edge, ribbon, and facet-buffer preparation; no GPU rasterization",
   "runtime": {
     "node": "v24.14.0",
     "platform": "linux",
@@ -11,28 +11,30 @@
     {
       "tier": "mobile",
       "nodes": 512,
-      "edges": 556,
+      "edges": 905,
+      "faces": 392,
       "samples": 180,
       "pairedTickAndPackMs": {
-        "median": 0.7532340000000062,
-        "p95": 1.023520150000003,
-        "p99": 1.277218319999987,
-        "max": 2.3999199999999945
+        "median": 0.8300075000000078,
+        "p95": 1.0762274499999913,
+        "p99": 1.316887500000003,
+        "max": 4.119314000000003
       },
-      "stateHash": "c405b987"
+      "stateHash": "2657ae82"
     },
     {
       "tier": "desktop",
       "nodes": 2048,
-      "edges": 2248,
+      "edges": 3671,
+      "faces": 1598,
       "samples": 180,
       "pairedTickAndPackMs": {
-        "median": 2.7784650000000397,
-        "p95": 3.100449649999976,
-        "p99": 3.398301949999963,
-        "max": 3.4399479999999585
+        "median": 3.151256499999988,
+        "p95": 3.4645530999999856,
+        "p99": 3.8468524700000284,
+        "max": 5.888159999999971
       },
-      "stateHash": "a82e6eb6"
+      "stateHash": "a32eb7b5"
     }
   ]
 }

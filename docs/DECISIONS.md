@@ -23,7 +23,7 @@ implementation may silently decide an open item by accident.
 | D016 | Open — P14 | Choose deterministic video export container/codec and fallback. | Implementation owner | Target is 1920×1080 at 30 fps; browser support must be measured. |
 | D017 | Accepted | Motion Look provides rotational yaw/pitch/optional roll only, with touch fallback and recenter. | Creative owner | Honest browser sensor behavior; physical XYZ translation is out of scope. |
 | D018 | Open — accessibility review | Decide reduced-motion defaults and whether roll can ever auto-enable. | Creative owner | Must be resolved before Home visual approval. |
-| D019 | Proposed — P04 implementation | Ship Branching, Ribbon, and Radial as one related vector-organism family using stable topology descriptors and one NCA-to-geometry decode. Preserve node/edge/ribbon buffers across lifecycle changes and rank detail for Overview, Mid, and Macro LOD. | Creative owner + implementation owner | Implemented in the P04 review branch. Acceptance requires judging the deterministic morphology and lifecycle PNGs plus the live organism lab; implementation tests and provisional CPU budgets already pass. |
+| D019 | Proposed — P04 implementation | Ship Branching, Ribbon, and Radial as one related vector-organism family using stable topology descriptors and one NCA-to-geometry decode. Preserve node, edge, ribbon, and low-poly facet buffers across lifecycle changes and rank detail for Overview, Mid, and Macro LOD. | Creative owner + implementation owner | Implemented in the P04 review branch. Acceptance requires judging the deterministic morphology and lifecycle PNGs plus the live organism lab; implementation tests and provisional CPU budgets already pass. |
 
 ## Change rule
 

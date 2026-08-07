@@ -56,6 +56,8 @@ export class VectorRenderer {
   private readonly nodeEmissionStrengths: Float32Array;
   private readonly ribbonGeometry: THREE.BufferGeometry;
   private readonly ribbonMaterial: THREE.MeshStandardMaterial;
+  private readonly faceGeometry: THREE.BufferGeometry;
+  private readonly faceMaterial: THREE.MeshStandardMaterial;
   private readonly forwardMarkers: THREE.InstancedMesh;
   private readonly forwardMaterial: THREE.MeshStandardMaterial;
   private readonly packer: VectorBufferPacker;
@@ -218,6 +220,26 @@ export class VectorRenderer {
     emissionLines.visible = this.mode !== 'calibration';
     this.scene.add(emissionLines);
 
+    this.faceGeometry = new THREE.BufferGeometry();
+    this.faceGeometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(this.packer.buffers.facePositions, 3).setUsage(THREE.DynamicDrawUsage),
+    );
+    this.faceGeometry.computeVertexNormals();
+    this.faceMaterial = new THREE.MeshStandardMaterial({
+      color: 0xd9d9de,
+      roughness: 0.74,
+      metalness: 0,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.26,
+      depthWrite: false,
+    });
+    const faces = new THREE.Mesh(this.faceGeometry, this.faceMaterial);
+    faces.frustumCulled = false;
+    faces.visible = this.mode !== 'calibration';
+    this.scene.add(faces);
+
     const ribbonCount = this.packer.buffers.ribbonCount;
     const ribbonIndices = new Uint32Array(ribbonCount * 6);
     for (let ribbon = 0; ribbon < ribbonCount; ribbon += 1) {
@@ -348,6 +370,9 @@ export class VectorRenderer {
     const ribbonAttribute = this.ribbonGeometry.getAttribute('position');
     ribbonAttribute.needsUpdate = true;
     this.ribbonGeometry.computeVertexNormals();
+    const faceAttribute = this.faceGeometry.getAttribute('position');
+    faceAttribute.needsUpdate = true;
+    this.faceGeometry.computeVertexNormals();
 
     this.homeEmitters?.update(snapshot.tick, alpha);
     this.calibration?.update(snapshot.tick, alpha);
@@ -430,6 +455,12 @@ export class VectorRenderer {
     this.ribbonMaterial.depthWrite = !ghost;
     this.ribbonMaterial.roughness = technical ? 0.8 : ghost ? 0.18 : 0.62;
     this.ribbonMaterial.needsUpdate = true;
+
+    this.faceMaterial.wireframe = technical;
+    this.faceMaterial.opacity = ghost ? 0.08 : technical ? 0.16 : 0.26;
+    this.faceMaterial.depthWrite = false;
+    this.faceMaterial.roughness = technical ? 0.9 : ghost ? 0.3 : 0.74;
+    this.faceMaterial.needsUpdate = true;
 
     this.forwardMaterial.wireframe = technical;
     this.forwardMaterial.transparent = ghost;
