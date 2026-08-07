@@ -10,6 +10,8 @@ truth.
 ```mermaid
 flowchart TD
   A[Seed + quality tier] --> B[Headless graph simulation]
+  M[Environment manifest] --> S[Signed field sampler]
+  S --> B
   B --> C[30 Hz typed-array snapshot]
   C --> D[Vector buffer packer]
   D --> E[Three.js WebGL2 renderer]
@@ -21,6 +23,11 @@ The same `VectorBufferPacker` runs in the Node benchmark and the visible browser
 renderer. This keeps node, edge, and sparse-ribbon preparation measurable without
 requiring a DOM or GPU in deterministic tests.
 
+Environment influence enters the tick through one sampler. The manifest is the
+only place an environment names anything; the simulation reads typed channels
+and never branches on Home, Forest, or Pond. See
+[P07-FIELD-API.md](P07-FIELD-API.md).
+
 ## Source boundaries
 
 | Directory | Responsibility | May depend on Three.js/DOM? |
@@ -29,10 +36,12 @@ requiring a DOM or GPU in deterministic tests.
 | `src/nca` | Versioned learned-update fixture and model metadata | No |
 | `src/rendering` | Vector buffer packing, Three.js scene, inspectable GLSL probes | Packer: no; renderer: yes |
 | `src/spectral` | Wavelength conversion, semantic events, linear-light look profiles | No |
+| `src/fields` | Signed food/kill/neutral field API, manifest validation, spatial index | No |
+| `src/environments/manifests` | Authored Home, Forest, and Pond field manifests | No |
 | `src/environments` | Home graybox presentation geometry | Yes |
 | `src/platform` | Capability detection, quality selection, DPR/long-edge caps | Pure helpers plus browser detector |
 | `src/benchmark` | Percentiles, browser paired benchmark, GPU throughput probes | Statistics: no; GPU probes: yes |
-| `src/ui` | Status, fallback, controls, benchmark evidence panel | Yes |
+| `src/ui` | Status, fallback, controls, benchmark and field evidence panels | Yes |
 | `src/export` | Benchmark JSON plus final-canvas PNG/video color contract | Browser capture only |
 | `tests` | Determinism, headless execution, pacing, packing, quality policy | No renderer |
 

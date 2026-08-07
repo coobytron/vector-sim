@@ -2,6 +2,7 @@ import { cpus, freemem, platform, release, totalmem } from 'node:os';
 import { performance } from 'node:perf_hooks';
 import process from 'node:process';
 import { summarize } from '../src/benchmark/statistics';
+import { FIELD_BATCH_STRIDE } from '../src/fields/types';
 import { VectorBufferPacker } from '../src/rendering/vectorBufferPacker';
 import { HeadlessSimulation } from '../src/simulation/headlessSimulation';
 import { QUALITY_TIERS, type QualityTierName } from '../src/simulation/types';
@@ -15,6 +16,7 @@ interface TierResult {
   samples: number;
   pairedTickAndPackMs: ReturnType<typeof summarize>;
   simulationTickMs: ReturnType<typeof summarize>;
+  fieldSampleMs: ReturnType<typeof summarize>;
   vectorPackMs: ReturnType<typeof summarize>;
   finalTick: number;
   stateHash: string;
@@ -35,6 +37,11 @@ function runTier(tierName: QualityTierName): TierResult {
   const paired: number[] = [];
   const simulationTimes: number[] = [];
   const packTimes: number[] = [];
+  // The field batch is measured separately so the environment query cost is
+  // attributable against the P02 tick budget.
+  const fieldTimes: number[] = [];
+  const fieldBatch = new Float32Array(simulation.nodeCount * FIELD_BATCH_STRIDE);
+  const fieldContacts = new Int32Array(simulation.nodeCount);
   for (let sample = 0; sample < samples; sample += 1) {
     const pairedStart = performance.now();
     const simulationStart = pairedStart;
@@ -45,6 +52,15 @@ function runTier(tierName: QualityTierName): TierResult {
     simulationTimes.push(packStart - simulationStart);
     packTimes.push(end - packStart);
     paired.push(end - pairedStart);
+
+    const fieldStart = performance.now();
+    simulation.fields.sampleBatch(
+      simulation.snapshot.positions,
+      simulation.nodeCount,
+      fieldBatch,
+      fieldContacts,
+    );
+    fieldTimes.push(performance.now() - fieldStart);
   }
 
   const snapshot = simulation.snapshot;
@@ -65,6 +81,7 @@ function runTier(tierName: QualityTierName): TierResult {
     samples,
     pairedTickAndPackMs: summarize(paired),
     simulationTickMs: summarize(simulationTimes),
+    fieldSampleMs: summarize(fieldTimes),
     vectorPackMs: summarize(packTimes),
     finalTick: simulation.tick,
     stateHash: simulation.stateHash(),
@@ -75,7 +92,8 @@ function runTier(tierName: QualityTierName): TierResult {
 const result = {
   schema: 'vector-sim-node-benchmark-v1',
   timestamp: new Date().toISOString(),
-  measurementClass: 'CPU reference + vector-buffer preparation; no GPU rasterization',
+  measurementClass:
+    'CPU reference + environment field sampling + vector-buffer preparation; no GPU rasterization',
   runtime: {
     node: process.version,
     platform: platform(),

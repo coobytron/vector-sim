@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Spectral Homestead — a graph-NCA 3D vector environment simulator",
+  "description": "Spectral Homestead \u2014 a graph-NCA 3D vector environment simulator",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -16,7 +16,8 @@
     "validate:p01": "node scripts/validate-p01.mjs",
     "validate:p02": "node scripts/validate-p02.mjs",
     "validate:p03": "node scripts/validate-p03.mjs",
-    "qa": "npm run validate:p01 && npm run validate:p02 && npm run validate:p03 && npm run lint && npm run test && npm run build"
+    "validate:p07": "node scripts/validate-p07.mjs",
+    "qa": "npm run validate:p01 && npm run validate:p02 && npm run validate:p03 && npm run validate:p07 && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "three": "^0.185.1"

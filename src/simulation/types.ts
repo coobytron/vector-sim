@@ -1,3 +1,5 @@
+import type { EnvironmentManifest } from '../fields/types';
+
 export type QualityTierName = 'mobile' | 'desktop';
 
 export interface QualityTier {
@@ -36,6 +38,8 @@ export interface SimulationConfig {
   seed: number;
   hiddenChannels?: number;
   learnedWidth?: number;
+  /** Environment manifest to sample fields from; defaults to Home. */
+  manifest?: EnvironmentManifest;
 }
 
 export interface SimulationSnapshot {
@@ -43,6 +47,7 @@ export interface SimulationSnapshot {
   active: Uint8Array;
   positions: Float32Array;
   previousPositions: Float32Array;
+  velocities: Float32Array;
   energy: Float32Array;
   health: Float32Array;
   edges: Uint32Array;

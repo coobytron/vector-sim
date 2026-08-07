@@ -1,0 +1,110 @@
+{
+  "schema": "vector-sim-node-benchmark-v1",
+  "timestamp": "2026-08-07T18:51:35.119Z",
+  "measurementClass": "CPU reference + environment field sampling + vector-buffer preparation; no GPU rasterization",
+  "runtime": {
+    "node": "v22.22.2",
+    "platform": "linux",
+    "release": "6.18.5-fc-v18",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "logicalCpus": 4,
+    "totalMemoryBytes": 16856059904,
+    "freeMemoryBytesAtStart": 16245010432
+  },
+  "tiers": [
+    {
+      "tier": "mobile",
+      "organisms": 4,
+      "slotsPerOrganism": 128,
+      "nodes": 512,
+      "edges": 536,
+      "samples": 180,
+      "pairedTickAndPackMs": {
+        "count": 180,
+        "min": 0.6780219999999986,
+        "median": 0.7642765000000082,
+        "p95": 0.9678805499999907,
+        "p99": 1.2331037099999618,
+        "max": 1.394328999999999,
+        "mean": 0.7982080555555551
+      },
+      "simulationTickMs": {
+        "count": 180,
+        "min": 0.6651259999999866,
+        "median": 0.7508234999999956,
+        "p95": 0.9522650999999865,
+        "p99": 1.2137048499999923,
+        "max": 1.3698029999999903,
+        "mean": 0.7840124944444445
+      },
+      "fieldSampleMs": {
+        "count": 180,
+        "min": 0.11361899999999991,
+        "median": 0.12570449999999767,
+        "p95": 0.23507759999999805,
+        "p99": 0.28026495999998696,
+        "max": 0.3521390000000224,
+        "mean": 0.1460533777777767
+      },
+      "vectorPackMs": {
+        "count": 180,
+        "min": 0.010622999999981175,
+        "median": 0.012547500000010814,
+        "p95": 0.01973274999998579,
+        "p99": 0.031506429999990454,
+        "max": 0.11789099999998598,
+        "mean": 0.01419556111111054
+      },
+      "finalTick": 210,
+      "stateHash": "1a5686ec",
+      "estimatedStateBytes": 187072
+    },
+    {
+      "tier": "desktop",
+      "organisms": 8,
+      "slotsPerOrganism": 256,
+      "nodes": 2048,
+      "edges": 2160,
+      "samples": 180,
+      "pairedTickAndPackMs": {
+        "count": 180,
+        "min": 2.7728480000000673,
+        "median": 2.9932419999999524,
+        "p95": 3.6785379999999974,
+        "p99": 4.187090980000065,
+        "max": 4.572770999999989,
+        "mean": 3.069987261111105
+      },
+      "simulationTickMs": {
+        "count": 180,
+        "min": 2.726092000000108,
+        "median": 2.936288499999989,
+        "p95": 3.6130774000000088,
+        "p99": 4.1345355900000476,
+        "max": 4.508859999999913,
+        "mean": 3.0167413611111
+      },
+      "fieldSampleMs": {
+        "count": 180,
+        "min": 0.40064699999993536,
+        "median": 0.4746820000000014,
+        "p95": 0.6341420999999627,
+        "p99": 0.7917102699999958,
+        "max": 0.8127069999999321,
+        "mean": 0.4927240944444463
+      },
+      "vectorPackMs": {
+        "count": 180,
+        "min": 0.043735999999967134,
+        "median": 0.04731350000002976,
+        "p95": 0.07420229999999604,
+        "p99": 0.1602448399999687,
+        "max": 0.2269990000000348,
+        "mean": 0.05324590000000424
+      },
+      "finalTick": 210,
+      "stateHash": "b861fefc",
+      "estimatedStateBytes": 748416
+    }
+  ]
+}

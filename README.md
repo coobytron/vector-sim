@@ -43,6 +43,8 @@ The non-negotiable direction is:
 - [P02 runtime decision](docs/adr/0001-runtime-backend.md)
 - [P03 spectral color pipeline](docs/P03-SPECTRAL-COLOR.md)
 - [P03 output decision](docs/adr/0002-linear-spectral-output.md)
+- [P07 signed field API](docs/P07-FIELD-API.md)
+- [P07 field decision](docs/adr/0003-signed-field-api.md)
 
 ## Phase order
 
@@ -80,3 +82,10 @@ transform-feedback throughput probes on the current device. Use
 Open `?calibration=1` for the interactive wavelength/intensity/exposure board.
 Use `look=porcelain`, `look=technical`, or `look=ghost` to compare the spectral
 response profiles, and **Save PNG** to capture the final post-processed canvas.
+
+Open `?fields=1` for the signed-field inspector: blue food, red kill, lattice
+brightness for falloff, gradient arrows for sampled direction, a live probe at
+the camera target, and a **Flip sign** control that reverses a source's effect
+without touching agent code. Add `&environment=vector-canopy` or
+`&environment=prismatic-pond` to sample the same API in the other two
+environments.

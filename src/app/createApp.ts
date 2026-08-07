@@ -10,6 +10,9 @@ import { HeadlessSimulation } from '../simulation/headlessSimulation';
 import { showBenchmarkProgress, showBenchmarkResult } from '../ui/benchmarkPanel';
 import { createShell, showFallback } from '../ui/shell';
 import { createSpectralPanel } from '../ui/spectralPanel';
+import { createFieldSample } from '../fields/types';
+import type { FieldPanelController } from '../ui/fieldPanel';
+import { selectEnvironmentManifest } from '../environments/manifests';
 import { selectSpectralLook } from '../spectral/looks';
 
 export interface VectorSimApp {
@@ -23,7 +26,9 @@ export function createApp(root: HTMLElement): VectorSimApp {
   const mode: RenderMode = parameters.get('calibration') === '1' ? 'calibration' : 'home';
   let look = selectSpectralLook(parameters.get('look'));
   const shell = createShell(root, tier.name, mode, look.name);
-  const simulation = new HeadlessSimulation({ tier, seed: 0x53504543 });
+  const manifest = selectEnvironmentManifest(parameters.get('environment'));
+  const simulation = new HeadlessSimulation({ tier, seed: 0x53504543, manifest });
+  const fieldDebugRequested = parameters.get('fields') === '1' && mode === 'home';
   const benchmarkRequested = parameters.get('benchmark') === '1';
   const benchmarkSeconds = parseBenchmarkDurationSeconds(parameters.get('duration'));
 
@@ -52,6 +57,22 @@ export function createApp(root: HTMLElement): VectorSimApp {
   let disposed = false;
   let frameCounter = 0;
   let readoutStart = performance.now();
+  let fieldPanel: FieldPanelController | undefined;
+  const fieldProbe = createFieldSample();
+  let probeUpdatedAt = 0;
+
+  if (fieldDebugRequested && !benchmarkRequested) {
+    // The inspector is a separate chunk: the default run never downloads it.
+    void Promise.all([import('../rendering/fieldDebugScene'), import('../ui/fieldPanel')]).then(
+      ([{ FieldDebugScene }, { createFieldPanel }]) => {
+        if (disposed) return;
+        renderer.attachFieldDebug(new FieldDebugScene(simulation.fields, look));
+        fieldPanel = createFieldPanel(shell.frame, simulation.fields, () =>
+          renderer.rebuildFieldDebug(),
+        );
+      },
+    );
+  }
   const spectralPanel = mode === 'calibration' && !benchmarkRequested
     ? createSpectralPanel(
         shell.frame,
@@ -118,6 +139,13 @@ export function createApp(root: HTMLElement): VectorSimApp {
     }
     frameCounter += 1;
 
+    if (fieldPanel && nowMs - probeUpdatedAt >= 250) {
+      const target = renderer.probeTarget();
+      simulation.fields.sample(target[0], target[1], target[2], fieldProbe);
+      fieldPanel.refresh(fieldProbe, target);
+      probeUpdatedAt = nowMs;
+    }
+
     if (nowMs - readoutStart >= 500) {
       const elapsed = Math.max(1, nowMs - readoutStart);
       const fps = (frameCounter * 1000) / elapsed;
@@ -136,6 +164,7 @@ export function createApp(root: HTMLElement): VectorSimApp {
       cancelAnimationFrame(animationFrame);
       document.removeEventListener('visibilitychange', onVisibility);
       spectralPanel?.dispose();
+      fieldPanel?.dispose();
       renderer.dispose();
     },
   };

@@ -82,8 +82,11 @@ difference.
 
 ## Example manifest shape
 
-The exact JSON Schema lands with the field-API implementation issue. This P01
-shape is the governing semantic contract:
+The implementation of this contract shipped in P07. The typed manifest lives in
+`src/fields/types.ts`, validation in `src/fields/manifest.ts`, and the authored
+Home, Forest, and Pond manifests in `src/environments/manifests/`. See
+[P07-FIELD-API.md](P07-FIELD-API.md). The P01 shape below remains the governing
+semantic contract:
 
 ```json
 {

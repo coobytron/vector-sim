@@ -13,6 +13,7 @@ import {
 } from '../spectral/color';
 import { sampleSpectralEvent } from '../spectral/events';
 import type { SpectralLookProfile } from '../spectral/looks';
+import type { FieldDebugScene } from './fieldDebugScene';
 import { HomeSpectralEmitters } from './homeSpectralEmitters';
 import { SpectralCalibrationScene } from './spectralCalibrationScene';
 import { SpectralPostProcessor } from './spectralPostProcessor';
@@ -63,6 +64,7 @@ export class VectorRenderer {
   private readonly resizeObserver: ResizeObserver;
   private readonly postProcessor: SpectralPostProcessor;
   private readonly homeEmitters?: HomeSpectralEmitters;
+  private fieldDebug?: FieldDebugScene;
   private readonly calibration?: SpectralCalibrationScene;
   private readonly mode: RenderMode;
   private look: SpectralLookProfile;
@@ -309,6 +311,7 @@ export class VectorRenderer {
     this.look = look;
     this.postProcessor.setLook(look);
     this.homeEmitters?.setLook(look);
+    this.fieldDebug?.setLook(look);
     this.calibration?.setLook(look);
     this.setSpectralProbe(
       evaluateSpectralColor(
@@ -319,6 +322,26 @@ export class VectorRenderer {
         look.outputSaturation,
       ),
     );
+  }
+
+  /**
+   * Attach the signed-field debug view. It is loaded on demand so the default
+   * bundle never carries the inspector.
+   */
+  attachFieldDebug(debug: FieldDebugScene): void {
+    this.fieldDebug?.dispose();
+    this.fieldDebug = debug;
+    this.scene.add(debug.group);
+  }
+
+  /** Redraw the field debug view after a source was retuned or painted. */
+  rebuildFieldDebug(): void {
+    this.fieldDebug?.rebuild();
+  }
+
+  /** World position the camera is framing; used as the field probe point. */
+  probeTarget(): [number, number, number] {
+    return [this.controls.target.x, this.controls.target.y, this.controls.target.z];
   }
 
   setExposure(exposure: number): void {
@@ -362,6 +385,7 @@ export class VectorRenderer {
   }
 
   dispose(): void {
+    this.fieldDebug?.dispose();
     this.resizeObserver.disconnect();
     this.controls.dispose();
     const geometries = new Set<THREE.BufferGeometry>();
