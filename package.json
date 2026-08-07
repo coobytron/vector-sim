@@ -1,0 +1,12 @@
+{
+  "name": "vector-sim",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Spectral Homestead — a graph-NCA 3D vector environment simulator",
+  "scripts": {
+    "validate:p01": "node scripts/validate-p01.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
