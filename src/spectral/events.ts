@@ -1,3 +1,5 @@
+import { DEATH_WAVELENGTH_NM, lifeDeathToWavelength } from './color';
+
 export type SpectralEvent =
   | 'feeding'
   | 'hazard'
@@ -19,7 +21,6 @@ export type SpectralMotion =
 export interface SemanticSpectralSample {
   event: SpectralEvent;
   wavelengthNm: number;
-  accentWavelengthNm?: number;
   intensityScale: number;
   motion: SpectralMotion;
   formCue: string;
@@ -58,7 +59,7 @@ export function sampleSpectralEvent(
     case 'feeding':
       return {
         event,
-        wavelengthNm: sweep(410, 620, amount),
+        wavelengthNm: lifeDeathToWavelength((1 - amount) * 0.06),
         intensityScale: 0.72 + Math.sin(amount * Math.PI) * 0.28,
         motion: 'source-to-agent',
         formCue: 'directed transfer wave',
@@ -66,7 +67,7 @@ export function sampleSpectralEvent(
     case 'hazard':
       return {
         event,
-        wavelengthNm: 610 + Math.sin(amount * Math.PI * 2) * 18,
+        wavelengthNm: lifeDeathToWavelength(0.73 + Math.sin(amount * Math.PI * 2) * 0.05),
         intensityScale: 0.48 + Math.sin(amount * Math.PI) * 0.16,
         motion: 'boundary-hold',
         formCue: 'stationary boundary tension',
@@ -74,8 +75,7 @@ export function sampleSpectralEvent(
     case 'damage':
       return {
         event,
-        wavelengthNm: sweep(700, 620, amount),
-        accentWavelengthNm: amount < 0.18 ? 410 : undefined,
+        wavelengthNm: lifeDeathToWavelength(0.8 + amount * 0.16),
         intensityScale: 1 - amount * 0.45,
         motion: 'contact-to-graph',
         formCue: 'fracture and recoil',
@@ -83,7 +83,7 @@ export function sampleSpectralEvent(
     case 'regeneration':
       return {
         event,
-        wavelengthNm: sweep(430, 590, amount),
+        wavelengthNm: lifeDeathToWavelength((1 - amount) * 0.12),
         intensityScale: 0.62 + Math.sin(amount * Math.PI) * 0.38,
         motion: 'survivor-to-growth',
         formCue: 'outward topology reconstruction',
@@ -91,7 +91,7 @@ export function sampleSpectralEvent(
     case 'mutation':
       return {
         event,
-        wavelengthNm: sweep(380, 700, amount),
+        wavelengthNm: lifeDeathToWavelength(0.34 + Math.sin(amount * Math.PI) * 0.3),
         intensityScale: Math.sin(amount * Math.PI),
         motion: 'subgraph-pulse',
         formCue: 'single restrained topology pulse',
@@ -99,8 +99,7 @@ export function sampleSpectralEvent(
     case 'death':
       return {
         event,
-        wavelengthNm: sweep(700, 665, amount),
-        accentWavelengthNm: amount < 0.12 ? 400 : undefined,
+        wavelengthNm: DEATH_WAVELENGTH_NM,
         intensityScale: Math.pow(1 - amount, 1.6),
         motion: 'collapse-to-source',
         formCue: 'edge retraction and node extinction',
@@ -108,7 +107,7 @@ export function sampleSpectralEvent(
     case 'inspection':
       return {
         event,
-        wavelengthNm: sweep(440, 610, amount),
+        wavelengthNm: lifeDeathToWavelength(sweep(0.25, 0.68, amount)),
         intensityScale: 0.24,
         motion: 'channel-band',
         formCue: 'static diagnostic band',

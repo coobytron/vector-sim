@@ -36,6 +36,13 @@ for (const term of [
   'wavelengthToXyz',
   'xyzToLinearSrgb',
   'gamutMapSpectralRgb',
+  'SPECTRAL_CLAMP_MIN_NM = 470',
+  'SPECTRAL_CLAMP_MAX_NM = 620',
+  'lifeDeathToWavelength',
+  'DEFAULT_SPECTRAL_CHROMA_GAIN = 1.32',
+  'DEFAULT_OUTPUT_SATURATION = 0.18',
+  'boostSpectralChroma',
+  'adjustLinearSaturation',
   'spectralEmissionLinear',
   'acesFilmicToneMap',
   'linearToSrgb',
@@ -50,6 +57,7 @@ for (const term of [
   'THREE.SRGBColorSpace',
   'THREE.ACESFilmicToneMapping',
   'UnrealBloomPass',
+  'HueSaturationShader',
   'OutputPass',
 ]) {
   if (!post.includes(term)) failures.push(`Post-processing contract is missing: ${term}`);
@@ -66,7 +74,7 @@ for (const event of ['feeding', 'hazard', 'damage', 'regeneration', 'mutation', 
 }
 
 const manifest = JSON.parse(read('assets/reference/spectral-calibration-reference.json'));
-if (manifest.schema !== 'vector-sim-spectral-reference-v1') {
+if (manifest.schema !== 'vector-sim-spectral-reference-v3') {
   failures.push('Unexpected spectral reference schema.');
 }
 if (manifest.width !== 1536 || manifest.height !== 1024) {
@@ -74,6 +82,17 @@ if (manifest.width !== 1536 || manifest.height !== 1024) {
 }
 if (manifest.outputEncodes !== 1 || manifest.outputTransfer !== 'sRGB') {
   failures.push('Spectral reference must record exactly one sRGB output transfer.');
+}
+if (
+  manifest.wavelengthRangeNm?.[0] !== 470 ||
+  manifest.wavelengthRangeNm?.[1] !== 620 ||
+  manifest.semanticAnchorsNm?.life !== 470 ||
+  manifest.semanticAnchorsNm?.death !== 620
+) {
+  failures.push('Spectral reference must clamp 470 nm life to 620 nm death.');
+}
+if (manifest.spectralChromaGain !== 1.32 || manifest.outputSaturation !== 0.18) {
+  failures.push('Spectral reference must record the approved richer-color grade.');
 }
 const png = readFileSync(resolve(root, 'assets/reference/spectral-calibration-reference.png'));
 const width = png.readUInt32BE(16);
@@ -91,11 +110,15 @@ for (const term of ['D012 | Accepted — P03', 'ACES filmic', 'one final sRGB tr
 
 const documentation = read('docs/P03-SPECTRAL-COLOR.md');
 for (const term of [
-  '380–780 nm',
+  '470–620 nm',
+  'Blue is life',
+  'Red is death',
   'Live, PNG, and video agreement',
   'at most 1/255',
   'Linear RGB',
   'Display RGB',
+  '1.32×',
+  '+0.18',
 ]) {
   if (!documentation.includes(term)) failures.push(`P03 documentation is missing: ${term}`);
 }

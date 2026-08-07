@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
   acesFilmicToneMap,
+  adjustLinearSaturation,
+  DEFAULT_OUTPUT_SATURATION,
+  DEFAULT_SPECTRAL_CHROMA_GAIN,
+  DEATH_WAVELENGTH_NM,
   evaluateSpectralColor,
   gamutMapSpectralRgb,
+  LIFE_WAVELENGTH_NM,
   linearToSrgb,
+  lifeDeathToWavelength,
   mixLinearRgb,
+  SPECTRAL_CLAMP_MAX_NM,
+  SPECTRAL_CLAMP_MIN_NM,
   spectralEmissionLinear,
   srgbToLinear,
   wavelengthToLinearRgb,
@@ -14,21 +22,31 @@ function expectFiniteRgb(color: { r: number; g: number; b: number }): void {
   expect(Object.values(color).every(Number.isFinite)).toBe(true);
 }
 
+function chroma(color: { r: number; g: number; b: number }): number {
+  return Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b);
+}
+
+function dominantSeparation(color: { r: number; g: number; b: number }): number {
+  const channels = [color.r, color.g, color.b].sort((first, second) => second - first);
+  return (channels[0] ?? 0) - (channels[1] ?? 0);
+}
+
 describe('wavelength-to-linear-sRGB conversion', () => {
-  it('keeps the visible sequence ordered without a hand-picked RGB ramp', () => {
-    const violet = wavelengthToLinearRgb(410);
+  it('keeps the approved blue-to-red sequence ordered without a hand-picked RGB ramp', () => {
+    const blue = wavelengthToLinearRgb(LIFE_WAVELENGTH_NM);
     const cyan = wavelengthToLinearRgb(490);
     const green = wavelengthToLinearRgb(540);
-    const red = wavelengthToLinearRgb(660);
+    const red = wavelengthToLinearRgb(620);
 
-    expect(violet.b).toBeGreaterThan(violet.r);
+    expect(blue.b).toBeGreaterThan(blue.r);
+    expect(blue.b).toBeGreaterThan(blue.g);
     expect(cyan.b + cyan.g).toBeGreaterThan(cyan.r * 2);
     expect(green.g).toBeGreaterThan(green.r);
     expect(green.g).toBeGreaterThan(green.b);
     expect(red.r).toBeGreaterThan(red.g + red.b);
   });
 
-  it('returns finite in-gamut colors across the supported wavelength range', () => {
+  it('returns finite in-gamut colors across raw visible-spectrum inputs', () => {
     for (let wavelength = 380; wavelength <= 780; wavelength += 1) {
       const color = wavelengthToLinearRgb(wavelength);
       expectFiniteRgb(color);
@@ -37,12 +55,41 @@ describe('wavelength-to-linear-sRGB conversion', () => {
     }
   });
 
+  it('hard-clamps authored color to 470–620 nm', () => {
+    expect(SPECTRAL_CLAMP_MIN_NM).toBe(470);
+    expect(SPECTRAL_CLAMP_MAX_NM).toBe(620);
+    expect(wavelengthToLinearRgb(380)).toEqual(wavelengthToLinearRgb(LIFE_WAVELENGTH_NM));
+    expect(wavelengthToLinearRgb(780)).toEqual(wavelengthToLinearRgb(DEATH_WAVELENGTH_NM));
+    expect(evaluateSpectralColor(120, 1).wavelengthNm).toBe(LIFE_WAVELENGTH_NM);
+    expect(evaluateSpectralColor(900, 1).wavelengthNm).toBe(DEATH_WAVELENGTH_NM);
+  });
+
+  it('reserves the blue endpoint for life and the red endpoint for death', () => {
+    expect(lifeDeathToWavelength(0)).toBe(LIFE_WAVELENGTH_NM);
+    expect(lifeDeathToWavelength(1)).toBe(DEATH_WAVELENGTH_NM);
+    expect(lifeDeathToWavelength(-1)).toBe(LIFE_WAVELENGTH_NM);
+    expect(lifeDeathToWavelength(2)).toBe(DEATH_WAVELENGTH_NM);
+
+    const life = wavelengthToLinearRgb(LIFE_WAVELENGTH_NM);
+    const death = wavelengthToLinearRgb(DEATH_WAVELENGTH_NM);
+    expect(life.b).toBeGreaterThan(life.r + life.g);
+    expect(death.r).toBeGreaterThan(death.g + death.b);
+  });
+
   it('maps out-of-gamut spectral values without changing channel order', () => {
     const mapped = gamutMapSpectralRgb({ r: 1.7, g: -0.3, b: 0.2 });
     expect(mapped.r).toBeGreaterThan(mapped.b);
     expect(mapped.b).toBeGreaterThan(mapped.g);
     expect(mapped.g).toBe(0);
     expect(mapped.r).toBe(1);
+  });
+
+  it('expands source chroma without changing the dominant channel', () => {
+    expect(DEFAULT_SPECTRAL_CHROMA_GAIN).toBe(1.32);
+    const previousGrade = wavelengthToLinearRgb(565, 1.18);
+    const richer = wavelengthToLinearRgb(565, DEFAULT_SPECTRAL_CHROMA_GAIN);
+    expect(dominantSeparation(richer)).toBeGreaterThan(dominantSeparation(previousGrade));
+    expect(richer.g).toBe(Math.max(richer.r, richer.g, richer.b));
   });
 });
 
@@ -76,9 +123,22 @@ describe('linear-light output contract', () => {
     }
   });
 
+  it('boosts saturation while leaving neutral architecture unchanged', () => {
+    expect(DEFAULT_OUTPUT_SATURATION).toBe(0.18);
+    const color = { r: 0.08, g: 0.42, b: 1.4 };
+    const previousGrade = adjustLinearSaturation(color, 0.14);
+    const richer = adjustLinearSaturation(color, DEFAULT_OUTPUT_SATURATION);
+    expect(chroma(richer)).toBeGreaterThan(chroma(previousGrade));
+    expect(adjustLinearSaturation({ r: 0.72, g: 0.72, b: 0.72 })).toEqual({
+      r: 0.72,
+      g: 0.72,
+      b: 0.72,
+    });
+  });
+
   it('rolls HDR emission toward white while retaining internal detail', () => {
-    const low = evaluateSpectralColor(510, 0.5);
-    const high = evaluateSpectralColor(510, 8);
+    const low = evaluateSpectralColor(LIFE_WAVELENGTH_NM, 0.5);
+    const high = evaluateSpectralColor(LIFE_WAVELENGTH_NM, 8);
     expect(high.displayRgb.g).toBeGreaterThan(low.displayRgb.g);
     expect(high.displayRgb.r).toBeGreaterThan(low.displayRgb.r);
     expect(high.displayRgb.b).toBeGreaterThan(low.displayRgb.b);
@@ -87,8 +147,8 @@ describe('linear-light output contract', () => {
   });
 
   it('keeps intensity separate and deterministic for live/export consumers', () => {
-    const first = spectralEmissionLinear(532, 2.25);
-    const second = spectralEmissionLinear(532, 2.25);
+    const first = spectralEmissionLinear(LIFE_WAVELENGTH_NM, 2.25);
+    const second = spectralEmissionLinear(LIFE_WAVELENGTH_NM, 2.25);
     expect(first).toEqual(second);
     expectFiniteRgb(first);
   });

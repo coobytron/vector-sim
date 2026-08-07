@@ -15,8 +15,8 @@ repeatable local response through Neural Cellular Automata.
 
 The world begins almost entirely white. Color is earned by an event. When energy
 moves from a threshold into an organism, a spectral sequence travels along the
-same path. When a lethal wall breaks connectivity, a restrained red-violet event
-marks the contact and the affected edges retract. A still frame should explain
+same path. When a lethal wall breaks connectivity, a restrained red event marks
+the contact and the affected edges retract. A still frame should explain
 where an event occurred; motion should explain how it propagated.
 
 ## Intended feeling

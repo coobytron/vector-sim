@@ -2,12 +2,15 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { HueSaturationShader } from 'three/addons/shaders/HueSaturationShader.js';
 import type { SpectralLookProfile } from '../spectral/looks';
 
 export class SpectralPostProcessor {
   private readonly composer: EffectComposer;
   private readonly bloomPass: UnrealBloomPass;
+  private readonly saturationPass: ShaderPass;
   private readonly outputPass: OutputPass;
 
   constructor(
@@ -29,6 +32,8 @@ export class SpectralPostProcessor {
       look.bloomThreshold,
     );
     this.composer.addPass(this.bloomPass);
+    this.saturationPass = new ShaderPass(HueSaturationShader);
+    this.composer.addPass(this.saturationPass);
     this.outputPass = new OutputPass();
     this.composer.addPass(this.outputPass);
     this.setLook(look);
@@ -39,6 +44,8 @@ export class SpectralPostProcessor {
     this.bloomPass.strength = look.bloomStrength;
     this.bloomPass.radius = look.bloomRadius;
     this.bloomPass.threshold = look.bloomThreshold;
+    const saturation = this.saturationPass.uniforms.saturation;
+    if (saturation) saturation.value = look.outputSaturation;
   }
 
   setExposure(exposure: number): void {
@@ -56,6 +63,7 @@ export class SpectralPostProcessor {
 
   dispose(): void {
     this.bloomPass.dispose();
+    this.saturationPass.dispose();
     this.outputPass.dispose();
     this.composer.dispose();
   }

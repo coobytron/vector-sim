@@ -13,10 +13,11 @@ flowchart TD
   A[Wavelength + intensity] --> B[CIE 1931 analytic fit]
   B --> C[XYZ to linear sRGB]
   C --> D[Spectral gamut map]
-  D --> E[HDR emission + linear bloom]
-  E --> F[Fixed exposure]
-  F --> G[ACES filmic tone map]
-  G --> H[One sRGB output transfer]
+  D --> E[1.32× source chroma]
+  E --> F[HDR emission + linear bloom]
+  F --> G[Per-look saturation]
+  G --> H[Fixed exposure + ACES]
+  H --> I[One sRGB output transfer]
 ```
 
 All color values before the final transfer are linear-light values. Neutral
@@ -32,27 +33,36 @@ sRGB matrix.
 
 The spectral locus exceeds the sRGB gamut. The implementation adds the smallest
 neutral component required to remove negative channels, then peak-normalizes the
-result. This retains channel ordering while keeping intensity an independent
-parameter.
+result. A deterministic **1.32× source-chroma gain** expands the distance from
+neutral at the same peak intensity. Channels that leave sRGB are clipped at the
+boundary rather than diluted with more white. Dominant-channel order and the
+470–620 nm semantic direction remain unchanged.
 
-The conversion accepts 380–780 nm. The compact analytic fit becomes unreliable
-once every component approaches zero, so chromaticity is held at the nearest
-reliable endpoint from 380–400 nm and 660–780 nm while energy is attenuated at
-the visible boundary. Authored event semantics remain within 380–700 nm, as
-required by the art-direction contract.
+The analytic CIE fit remains defined across 380–780 nm internally, but every
+authored emission is hard-clamped to **470–620 nm** before display conversion.
+Requests below 470 nm resolve to the 470 nm endpoint; requests above 620 nm
+resolve to the 620 nm endpoint. Violet and far-red tails cannot enter the live,
+PNG, or video presentation path.
+
+**Blue is life. Red is death.** The 470 nm blue endpoint belongs to feeding,
+health, and completed regeneration. The 620 nm red endpoint is reserved for
+death. Intermediate cyan, green, amber, and orange communicate movement between
+those semantic poles without changing their meaning.
 
 ## HDR intensity and white-energy behavior
 
 Spectral chromaticity is multiplied by event intensity in linear light. Above
-3.25×, a controlled neutral component increases smoothly. ACES then rolls the
-highlight toward white without clipping every channel to the same value. This
-makes a hot emission look optically saturated while retaining internal hue and
-gradient structure.
+4.25×, a restrained neutral component increases smoothly. After bloom, a
+per-look saturation pass raises separation between color channels while leaving
+neutral pixels mathematically neutral. ACES then rolls the hottest highlights
+toward white without flattening the working range too early.
 
 The default Porcelain Spectrum settings are:
 
 | Setting | Value |
 |---|---:|
+| Source chroma gain | 1.32× |
+| Output saturation | +0.18 |
 | Exposure | 0.86 |
 | Bloom strength | 0.34 |
 | Bloom radius | 0.12 |
@@ -72,13 +82,13 @@ semantic state. Hue is never the only distinction.
 
 | Event | Wavelength behavior | Motion | Form cue |
 |---|---|---|---|
-| Feeding | 410–620 nm ordered sweep | Source → agent | Directed transfer wave |
-| Hazard | Restrained 592–628 nm band | Held at boundary | Stationary tension |
-| Damage | 700–620 nm plus brief 410 nm accent | Contact → graph | Fracture and recoil |
-| Regeneration | 430–590 nm ordered sweep | Survivor → growth | Outward reconstruction |
-| Mutation | One 380–700 nm traversal | Confined subgraph pulse | Topology pulse |
-| Death | 700–665 nm fade plus brief 400 nm accent | Collapse → source | Retraction and extinction |
-| Inspection | Low-intensity 440–610 nm band | Static channel band | Diagnostic only |
+| Feeding | 479→470 nm, converging on life blue | Source → agent | Directed transfer wave |
+| Hazard | Restrained 572–587 nm band | Held at boundary | Stationary tension |
+| Damage | 590→614 nm, approaching but never reaching death red | Contact → graph | Fracture and recoil |
+| Regeneration | 488→470 nm, completing at life blue | Survivor → growth | Outward reconstruction |
+| Mutation | One restrained 521–566 nm middle-band pulse | Confined subgraph pulse | Topology pulse |
+| Death | Fixed 620 nm red with intensity fade | Collapse → source | Retraction and extinction |
+| Inspection | Low-intensity 508–572 nm band | Static channel band | Diagnostic only |
 
 In the current Home graybox, the feeding threshold emits an ordered wave along a
 named transfer path. The damage fault holds red/fracture energy at the wall. NCA
@@ -90,11 +100,11 @@ baseline or health falls below one.
 P03 supplies one spectral response profile for each future authored look. P12
 will complete the material and geometry representation of those looks.
 
-| Look | Exposure | Bloom | Emission scale | Intent |
-|---|---:|---:|---:|---|
-| Porcelain Spectrum | 0.86 | 0.34 | 1.00 | Primary causal emission |
-| Technical Wire | 0.94 | 0.14 | 0.58 | Suppressed drafting response |
-| Ghost Volume | 0.78 | 0.27 | 0.82 | State visible inside translucent forms |
+| Look | Exposure | Bloom | Saturation | Emission scale | Intent |
+|---|---:|---:|---:|---:|---|
+| Porcelain Spectrum | 0.86 | 0.34 | +0.18 | 1.00 | Dense primary causal emission |
+| Technical Wire | 0.94 | 0.14 | +0.10 | 0.58 | Restrained drafting response |
+| Ghost Volume | 0.78 | 0.27 | +0.15 | 0.82 | State visible inside translucent forms |
 
 Changing a look never changes wavelength, event state, NCA state, or the neutral
 balance of white material inputs.
@@ -103,7 +113,7 @@ balance of white material inputs.
 
 Open `?calibration=1` to display:
 
-- 17 wavelength swatches across 380–780 nm;
+- 17 wavelength swatches across the 470–620 nm authored clamp;
 - six emission strengths from 0.25× through 8×;
 - neutral-white comparison plates;
 - six semantic motion/form markers;
@@ -114,8 +124,9 @@ The `look` query or UI control accepts `porcelain`, `technical`, or `ghost`. The
 **Save PNG** control captures the final canvas after bloom, ACES, and sRGB output.
 
 Run `npm run capture:spectral` to regenerate the committed 1536×1024 CPU contract
-reference. Its dimensions, SHA-256 digest, wavelength range, tone-map name, and
-single-output-transfer rule are recorded next to the PNG in
+reference. Its dimensions, SHA-256 digest, wavelength clamp, life/death anchors,
+chroma/saturation grade, tone-map name, and single-output-transfer rule are
+recorded next to the PNG in
 `assets/reference/spectral-calibration-reference.json`.
 
 ## Live, PNG, and video agreement

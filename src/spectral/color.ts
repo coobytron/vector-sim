@@ -1,6 +1,13 @@
-export const VISIBLE_WAVELENGTH_MIN_NM = 380;
-export const VISIBLE_WAVELENGTH_MAX_NM = 780;
+const CIE_VISIBLE_WAVELENGTH_MIN_NM = 380;
+const CIE_VISIBLE_WAVELENGTH_MAX_NM = 780;
+
+export const SPECTRAL_CLAMP_MIN_NM = 470;
+export const SPECTRAL_CLAMP_MAX_NM = 620;
+export const LIFE_WAVELENGTH_NM = SPECTRAL_CLAMP_MIN_NM;
+export const DEATH_WAVELENGTH_NM = SPECTRAL_CLAMP_MAX_NM;
 export const DEFAULT_SPECTRAL_EXPOSURE = 0.86;
+export const DEFAULT_SPECTRAL_CHROMA_GAIN = 1.32;
+export const DEFAULT_OUTPUT_SATURATION = 0.18;
 
 export interface Rgb {
   r: number;
@@ -12,6 +19,8 @@ export interface SpectralColorSample {
   wavelengthNm: number;
   intensity: number;
   exposure: number;
+  chromaGain: number;
+  outputSaturation: number;
   linearRgb: Rgb;
   toneMappedLinearRgb: Rgb;
   displayRgb: Rgb;
@@ -51,8 +60,8 @@ function asymmetricGaussian(
 export function wavelengthToXyz(wavelengthNm: number): Rgb {
   if (
     !Number.isFinite(wavelengthNm) ||
-    wavelengthNm < VISIBLE_WAVELENGTH_MIN_NM ||
-    wavelengthNm > VISIBLE_WAVELENGTH_MAX_NM
+    wavelengthNm < CIE_VISIBLE_WAVELENGTH_MIN_NM ||
+    wavelengthNm > CIE_VISIBLE_WAVELENGTH_MAX_NM
   ) {
     return { ...BLACK };
   }
@@ -69,6 +78,18 @@ export function wavelengthToXyz(wavelengthNm: number): Rgb {
     0.681 * asymmetricGaussian(wavelengthNm, 459.0, 0.0385, 0.0725);
 
   return { r: Math.max(0, x), g: Math.max(0, y), b: Math.max(0, z) };
+}
+
+/** Clamp every authored emission to the approved blue-life → red-death band. */
+export function clampSpectralWavelength(wavelengthNm: number): number {
+  const safeWavelength = Number.isFinite(wavelengthNm) ? wavelengthNm : LIFE_WAVELENGTH_NM;
+  return clamp(safeWavelength, SPECTRAL_CLAMP_MIN_NM, SPECTRAL_CLAMP_MAX_NM);
+}
+
+/** Map a normalized semantic state from life (0) to death (1). */
+export function lifeDeathToWavelength(deathAmount: number): number {
+  return LIFE_WAVELENGTH_NM +
+    (DEATH_WAVELENGTH_NM - LIFE_WAVELENGTH_NM) * clamp01(deathAmount);
 }
 
 export function xyzToLinearSrgb(xyz: Rgb): Rgb {
@@ -96,29 +117,40 @@ export function gamutMapSpectralRgb(color: Rgb): Rgb {
   return { r: lifted.r / peak, g: lifted.g / peak, b: lifted.b / peak };
 }
 
-export function wavelengthToLinearRgb(wavelengthNm: number): Rgb {
-  if (
-    !Number.isFinite(wavelengthNm) ||
-    wavelengthNm < VISIBLE_WAVELENGTH_MIN_NM ||
-    wavelengthNm > VISIBLE_WAVELENGTH_MAX_NM
-  ) {
-    return { ...BLACK };
-  }
-
-  // The compact analytic fit becomes numerically unstable in the near-UV and
-  // far-red tails after all channels approach zero. Hold the nearest reliable
-  // chromaticity while independently attenuating its energy at the visible edge.
-  const fitWavelength = clamp(wavelengthNm, 400, 660);
-  const mapped = gamutMapSpectralRgb(xyzToLinearSrgb(wavelengthToXyz(fitWavelength)));
-  const visibleEdge =
-    smoothstep(VISIBLE_WAVELENGTH_MIN_NM, 410, wavelengthNm) *
-    (1 - smoothstep(700, VISIBLE_WAVELENGTH_MAX_NM, wavelengthNm));
-  const edgeFloor = 0.22 + visibleEdge * 0.78;
-  return {
-    r: mapped.r * edgeFloor,
-    g: mapped.g * edgeFloor,
-    b: mapped.b * edgeFloor,
+/**
+ * Expand source chroma at constant peak intensity. The gamut-mapped spectral
+ * locus already touches the sRGB boundary, so out-of-gamut channels are clipped
+ * after expansion instead of adding neutral energy back into the color.
+ */
+export function boostSpectralChroma(
+  color: Rgb,
+  gain = DEFAULT_SPECTRAL_CHROMA_GAIN,
+): Rgb {
+  const safeGain = clamp(Number.isFinite(gain) ? gain : DEFAULT_SPECTRAL_CHROMA_GAIN, 1, 2);
+  const luminance = color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+  const expanded = {
+    r: Math.max(0, luminance + (color.r - luminance) * safeGain),
+    g: Math.max(0, luminance + (color.g - luminance) * safeGain),
+    b: Math.max(0, luminance + (color.b - luminance) * safeGain),
   };
+  const peak = Math.max(expanded.r, expanded.g, expanded.b);
+  if (!Number.isFinite(peak) || peak <= 1e-8) return { ...BLACK };
+  const normalization = Math.max(1, peak);
+  return {
+    r: expanded.r / normalization,
+    g: expanded.g / normalization,
+    b: expanded.b / normalization,
+  };
+}
+
+export function wavelengthToLinearRgb(
+  wavelengthNm: number,
+  chromaGain = DEFAULT_SPECTRAL_CHROMA_GAIN,
+): Rgb {
+  if (!Number.isFinite(wavelengthNm)) return { ...BLACK };
+  const clampedWavelength = clampSpectralWavelength(wavelengthNm);
+  const gamutMapped = gamutMapSpectralRgb(xyzToLinearSrgb(wavelengthToXyz(clampedWavelength)));
+  return boostSpectralChroma(gamutMapped, chromaGain);
 }
 
 export function addRgb(first: Rgb, second: Rgb): Rgb {
@@ -146,11 +178,36 @@ export function mixLinearRgb(first: Rgb, second: Rgb, amount: number): Rgb {
   };
 }
 
-export function spectralEmissionLinear(wavelengthNm: number, intensity: number): Rgb {
+export function spectralEmissionLinear(
+  wavelengthNm: number,
+  intensity: number,
+  chromaGain = DEFAULT_SPECTRAL_CHROMA_GAIN,
+): Rgb {
   const safeIntensity = clamp(Number.isFinite(intensity) ? intensity : 0, 0, 16);
-  const chroma = scaleRgb(wavelengthToLinearRgb(wavelengthNm), safeIntensity);
-  const whiteAmount = smoothstep(3.25, 10, safeIntensity) * safeIntensity * 0.12;
+  const chroma = scaleRgb(wavelengthToLinearRgb(wavelengthNm, chromaGain), safeIntensity);
+  const whiteAmount = smoothstep(4.25, 11, safeIntensity) * safeIntensity * 0.08;
   return addRgb(chroma, { r: whiteAmount, g: whiteAmount, b: whiteAmount });
+}
+
+/** Match the renderer's pre-ACES saturation pass for deterministic CPU output. */
+export function adjustLinearSaturation(
+  color: Rgb,
+  saturation = DEFAULT_OUTPUT_SATURATION,
+): Rgb {
+  const safeSaturation = clamp(
+    Number.isFinite(saturation) ? saturation : DEFAULT_OUTPUT_SATURATION,
+    -1,
+    0.5,
+  );
+  const average = (color.r + color.g + color.b) / 3;
+  const scale = safeSaturation > 0
+    ? 1 / (1.001 - safeSaturation)
+    : 1 + safeSaturation;
+  return {
+    r: average + (color.r - average) * scale,
+    g: average + (color.g - average) * scale,
+    b: average + (color.b - average) * scale,
+  };
 }
 
 function multiplyMatrix3(color: Rgb, matrix: readonly number[]): Rgb {
@@ -226,20 +283,31 @@ export function evaluateSpectralColor(
   wavelengthNm: number,
   intensity: number,
   exposure = DEFAULT_SPECTRAL_EXPOSURE,
+  chromaGain = DEFAULT_SPECTRAL_CHROMA_GAIN,
+  outputSaturation = DEFAULT_OUTPUT_SATURATION,
 ): SpectralColorSample {
-  const safeWavelength = clamp(
-    Number.isFinite(wavelengthNm) ? wavelengthNm : VISIBLE_WAVELENGTH_MIN_NM,
-    VISIBLE_WAVELENGTH_MIN_NM,
-    VISIBLE_WAVELENGTH_MAX_NM,
-  );
+  const safeWavelength = clampSpectralWavelength(wavelengthNm);
   const safeIntensity = clamp(Number.isFinite(intensity) ? intensity : 0, 0, 16);
   const safeExposure = clamp(Number.isFinite(exposure) ? exposure : DEFAULT_SPECTRAL_EXPOSURE, 0, 4);
-  const linearRgb = spectralEmissionLinear(safeWavelength, safeIntensity);
-  const toneMappedLinearRgb = acesFilmicToneMap(linearRgb, safeExposure);
+  const safeChromaGain = clamp(
+    Number.isFinite(chromaGain) ? chromaGain : DEFAULT_SPECTRAL_CHROMA_GAIN,
+    1,
+    2,
+  );
+  const safeOutputSaturation = clamp(
+    Number.isFinite(outputSaturation) ? outputSaturation : DEFAULT_OUTPUT_SATURATION,
+    -1,
+    0.5,
+  );
+  const linearRgb = spectralEmissionLinear(safeWavelength, safeIntensity, safeChromaGain);
+  const gradedLinearRgb = adjustLinearSaturation(linearRgb, safeOutputSaturation);
+  const toneMappedLinearRgb = acesFilmicToneMap(gradedLinearRgb, safeExposure);
   return {
     wavelengthNm: safeWavelength,
     intensity: safeIntensity,
     exposure: safeExposure,
+    chromaGain: safeChromaGain,
+    outputSaturation: safeOutputSaturation,
     linearRgb,
     toneMappedLinearRgb,
     displayRgb: linearToSrgb(toneMappedLinearRgb),

@@ -1,13 +1,19 @@
 {
-  "schema": "vector-sim-spectral-reference-v1",
+  "schema": "vector-sim-spectral-reference-v3",
   "width": 1536,
   "height": 1024,
-  "sha256": "9456ea14f32ba42d5762059b9ed0f9a8150f7448d1ed8bce60ad18aad77e06f3",
+  "sha256": "0d7d712ade147446a4dc8049688f9226b6fe0d41ffb54737801886cfec655a50",
   "wavelengthRangeNm": [
-    380,
-    780
+    470,
+    620
   ],
+  "semanticAnchorsNm": {
+    "life": 470,
+    "death": 620
+  },
   "exposure": 0.86,
+  "spectralChromaGain": 1.32,
+  "outputSaturation": 0.18,
   "toneMap": "Three.js ACESFilmicToneMapping",
   "outputTransfer": "sRGB",
   "outputEncodes": 1

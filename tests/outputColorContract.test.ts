@@ -15,6 +15,7 @@ describe('live and capture color contract', () => {
       expect(descriptor.source).toBe('post-tone-mapped-canvas');
       expect(descriptor.look).toBe(look.name);
       expect(descriptor.exposure).toBe(look.exposure);
+      expect(descriptor.outputSaturation).toBe(look.outputSaturation);
     }
   });
 });

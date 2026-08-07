@@ -126,7 +126,7 @@ The model emits proposals; hard constraints remain outside the learned model:
 | `thickness` | `0.003–0.035 m` | Edge/node structural scale. |
 | `ribbonWidth` | `0.005–0.090 m` | Visible ribbon width. |
 | `ribbonTwist` | `[-π,π] rad/m` | Orientation change along an edge. |
-| `emissionWavelength` | `380–700 nm` | Used only when an allowed event gate is active. |
+| `emissionWavelength` | `470–620 nm` | Used only when an allowed event gate is active; 470 nm means life and 620 nm means death. |
 | `emissionIntensity` | `[0,1]` | Multiplied by the event envelope and look exposure. |
 
 Birth proposals sort by score descending, then parent slot ascending, then target
