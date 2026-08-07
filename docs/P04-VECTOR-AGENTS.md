@@ -10,6 +10,15 @@ the form without replacing it with a conventional creature mesh.
 
 ![Lifecycle reference](../assets/reference/organism-state-reference.png)
 
+## Reference basis
+
+The supplied [Spectral Homestead overview](../assets/concepts/spectral-homestead/spectral-homestead-overview-01.jpeg)
+is the visual north star for scale and delicacy. P04 translates its fine angular
+constellations, irregular translucent planes, clustered wire structures, and
+restrained spectral trails into deterministic graph topology. The reference is
+directional rather than literal: organisms remain abstract simulation drawings,
+not conventional animal meshes copied from the image.
+
 ## Shared visual grammar
 
 Every family uses the same constrained vocabulary:
