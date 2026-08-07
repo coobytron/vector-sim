@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   acesFilmicToneMap,
+  adjustLinearSaturation,
+  DEFAULT_OUTPUT_SATURATION,
+  DEFAULT_SPECTRAL_CHROMA_GAIN,
   DEATH_WAVELENGTH_NM,
   evaluateSpectralColor,
   gamutMapSpectralRgb,
@@ -17,6 +20,15 @@ import {
 
 function expectFiniteRgb(color: { r: number; g: number; b: number }): void {
   expect(Object.values(color).every(Number.isFinite)).toBe(true);
+}
+
+function chroma(color: { r: number; g: number; b: number }): number {
+  return Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b);
+}
+
+function dominantSeparation(color: { r: number; g: number; b: number }): number {
+  const channels = [color.r, color.g, color.b].sort((first, second) => second - first);
+  return (channels[0] ?? 0) - (channels[1] ?? 0);
 }
 
 describe('wavelength-to-linear-sRGB conversion', () => {
@@ -71,6 +83,14 @@ describe('wavelength-to-linear-sRGB conversion', () => {
     expect(mapped.g).toBe(0);
     expect(mapped.r).toBe(1);
   });
+
+  it('expands source chroma without changing the dominant channel', () => {
+    expect(DEFAULT_SPECTRAL_CHROMA_GAIN).toBe(1.18);
+    const base = wavelengthToLinearRgb(565, 1);
+    const richer = wavelengthToLinearRgb(565, DEFAULT_SPECTRAL_CHROMA_GAIN);
+    expect(dominantSeparation(richer)).toBeGreaterThan(dominantSeparation(base));
+    expect(richer.g).toBe(Math.max(richer.r, richer.g, richer.b));
+  });
 });
 
 describe('linear-light output contract', () => {
@@ -101,6 +121,18 @@ describe('linear-light output contract', () => {
       expect(display.r).toBeCloseTo(display.g, 5);
       expect(display.g).toBeCloseTo(display.b, 5);
     }
+  });
+
+  it('boosts saturation while leaving neutral architecture unchanged', () => {
+    expect(DEFAULT_OUTPUT_SATURATION).toBe(0.14);
+    const color = { r: 0.08, g: 0.42, b: 1.4 };
+    const richer = adjustLinearSaturation(color, DEFAULT_OUTPUT_SATURATION);
+    expect(chroma(richer)).toBeGreaterThan(chroma(color));
+    expect(adjustLinearSaturation({ r: 0.72, g: 0.72, b: 0.72 })).toEqual({
+      r: 0.72,
+      g: 0.72,
+      b: 0.72,
+    });
   });
 
   it('rolls HDR emission toward white while retaining internal detail', () => {

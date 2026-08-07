@@ -1,4 +1,5 @@
 import type { SpectralLookProfile } from '../spectral/looks';
+import { DEFAULT_SPECTRAL_CHROMA_GAIN } from '../spectral/color';
 
 export const OUTPUT_COLOR_CONTRACT = {
   workingSpace: 'Linear sRGB',
@@ -7,12 +8,14 @@ export const OUTPUT_COLOR_CONTRACT = {
   outputTransfer: 'sRGB',
   outputEncodes: 1,
   bloomInput: 'HDR emissive geometry only',
+  spectralChromaGain: DEFAULT_SPECTRAL_CHROMA_GAIN,
 } as const;
 
 export interface OutputCaptureDescriptor {
   contract: typeof OUTPUT_COLOR_CONTRACT;
   look: string;
   exposure: number;
+  outputSaturation: number;
   source: 'post-tone-mapped-canvas';
 }
 
@@ -21,6 +24,7 @@ export function describeOutputCapture(look: SpectralLookProfile): OutputCaptureD
     contract: OUTPUT_COLOR_CONTRACT,
     look: look.name,
     exposure: look.exposure,
+    outputSaturation: look.outputSaturation,
     source: 'post-tone-mapped-canvas',
   };
 }

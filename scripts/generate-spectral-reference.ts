@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import sharp from 'sharp';
 import {
+  DEFAULT_SPECTRAL_CHROMA_GAIN,
   DEATH_WAVELENGTH_NM,
   evaluateSpectralColor,
   LIFE_WAVELENGTH_NM,
@@ -11,11 +12,13 @@ import {
   SPECTRAL_CLAMP_MIN_NM,
 } from '../src/spectral/color';
 import { sampleSpectralEvent, type SpectralEvent } from '../src/spectral/events';
+import { SPECTRAL_LOOKS } from '../src/spectral/looks';
 
 const width = 1536;
 const height = 1024;
 const outputPath = resolve('assets/reference/spectral-calibration-reference.png');
 const manifestPath = resolve('assets/reference/spectral-calibration-reference.json');
+const referenceLook = SPECTRAL_LOOKS.porcelain;
 const events: SpectralEvent[] = [
   'feeding',
   'hazard',
@@ -24,6 +27,16 @@ const events: SpectralEvent[] = [
   'mutation',
   'death',
 ];
+
+function evaluateReference(wavelengthNm: number, intensity: number) {
+  return evaluateSpectralColor(
+    wavelengthNm,
+    intensity,
+    referenceLook.exposure,
+    DEFAULT_SPECTRAL_CHROMA_GAIN,
+    referenceLook.outputSaturation,
+  );
+}
 
 function escapeXml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => {
@@ -48,7 +61,7 @@ function wavelengthBand(): string {
     const amount = index / (segments - 1);
     const wavelength = SPECTRAL_CLAMP_MIN_NM +
       amount * (SPECTRAL_CLAMP_MAX_NM - SPECTRAL_CLAMP_MIN_NM);
-    const sample = evaluateSpectralColor(wavelength, 2.4, 0.86);
+    const sample = evaluateReference(wavelength, 2.4);
     return `<rect x="${(left + index * segmentWidth).toFixed(2)}" y="${top}" width="${(segmentWidth + 0.5).toFixed(2)}" height="72" fill="${rgbToCss(sample.displayRgb)}"/>`;
   }).join('');
   const ticks = [SPECTRAL_CLAMP_MIN_NM, 500, 540, 580, SPECTRAL_CLAMP_MAX_NM]
@@ -69,7 +82,7 @@ function intensityCards(): string {
   const cardWidth = (width - left * 2 - gap * (strengths.length - 1)) / strengths.length;
   return strengths
     .map((intensity, index) => {
-      const sample = evaluateSpectralColor(LIFE_WAVELENGTH_NM, intensity, 0.86);
+      const sample = evaluateReference(LIFE_WAVELENGTH_NM, intensity);
       const x = left + index * (cardWidth + gap);
       const display = `${sample.displayRgb.r.toFixed(3)} ${sample.displayRgb.g.toFixed(3)} ${sample.displayRgb.b.toFixed(3)}`;
       return `
@@ -91,7 +104,7 @@ function semanticCards(): string {
   return events
     .map((event, index) => {
       const semantic = sampleSpectralEvent(event, 0.42);
-      const sample = evaluateSpectralColor(semantic.wavelengthNm, semantic.intensityScale * 2.8, 0.86);
+      const sample = evaluateReference(semantic.wavelengthNm, semantic.intensityScale * 2.8);
       const x = left + index * (cardWidth + gap);
       const hue = rgbToCss(sample.displayRgb);
       return `
@@ -128,7 +141,7 @@ const svg = `
   <text x="88" y="82" class="subtitle">VECTOR SIM / P03 / REFERENCE CAPTURE</text>
   <text x="88" y="139" class="title">Spectral color calibration</text>
   <text x="1448" y="98" text-anchor="end" class="micro">LINEAR sRGB → ACES → sRGB</text>
-  <text x="88" y="174" class="section">SPECTRUM CLAMP / ${SPECTRAL_CLAMP_MIN_NM}–${SPECTRAL_CLAMP_MAX_NM} NM / INTENSITY 2.4× / EXPOSURE 0.86</text>
+  <text x="88" y="174" class="section">SPECTRUM CLAMP / ${SPECTRAL_CLAMP_MIN_NM}–${SPECTRAL_CLAMP_MAX_NM} NM / CHROMA ${DEFAULT_SPECTRAL_CHROMA_GAIN.toFixed(2)}× / SAT +${referenceLook.outputSaturation.toFixed(2)}</text>
   ${wavelengthBand()}
   <text x="88" y="328" class="micro">BLUE / ${LIFE_WAVELENGTH_NM} NM / LIFE</text>
   <text x="1448" y="328" text-anchor="end" class="micro">RED / ${DEATH_WAVELENGTH_NM} NM / DEATH</text>
@@ -148,7 +161,7 @@ await sharp(Buffer.from(svg)).png({ compressionLevel: 9, adaptiveFiltering: fals
 const png = await readFile(outputPath);
 const sha256 = createHash('sha256').update(png).digest('hex');
 const manifest = {
-  schema: 'vector-sim-spectral-reference-v2',
+  schema: 'vector-sim-spectral-reference-v3',
   width,
   height,
   sha256,
@@ -157,7 +170,9 @@ const manifest = {
     life: LIFE_WAVELENGTH_NM,
     death: DEATH_WAVELENGTH_NM,
   },
-  exposure: 0.86,
+  exposure: referenceLook.exposure,
+  spectralChromaGain: DEFAULT_SPECTRAL_CHROMA_GAIN,
+  outputSaturation: referenceLook.outputSaturation,
   toneMap: 'Three.js ACESFilmicToneMapping',
   outputTransfer: 'sRGB',
   outputEncodes: 1,

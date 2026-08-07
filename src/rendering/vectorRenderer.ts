@@ -76,7 +76,13 @@ export class VectorRenderer {
   ) {
     this.mode = options.mode;
     this.look = options.look;
-    this.debugSample = evaluateSpectralColor(LIFE_WAVELENGTH_NM, 2.5, options.look.exposure);
+    this.debugSample = evaluateSpectralColor(
+      LIFE_WAVELENGTH_NM,
+      2.5,
+      options.look.exposure,
+      undefined,
+      options.look.outputSaturation,
+    );
     this.scene.background = new THREE.Color(0xf7f7f5);
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -309,6 +315,8 @@ export class VectorRenderer {
         this.debugSample.wavelengthNm,
         this.debugSample.intensity,
         look.exposure,
+        undefined,
+        look.outputSaturation,
       ),
     );
   }

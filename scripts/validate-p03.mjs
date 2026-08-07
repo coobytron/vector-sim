@@ -39,6 +39,10 @@ for (const term of [
   'SPECTRAL_CLAMP_MIN_NM = 470',
   'SPECTRAL_CLAMP_MAX_NM = 620',
   'lifeDeathToWavelength',
+  'DEFAULT_SPECTRAL_CHROMA_GAIN = 1.18',
+  'DEFAULT_OUTPUT_SATURATION = 0.14',
+  'boostSpectralChroma',
+  'adjustLinearSaturation',
   'spectralEmissionLinear',
   'acesFilmicToneMap',
   'linearToSrgb',
@@ -53,6 +57,7 @@ for (const term of [
   'THREE.SRGBColorSpace',
   'THREE.ACESFilmicToneMapping',
   'UnrealBloomPass',
+  'HueSaturationShader',
   'OutputPass',
 ]) {
   if (!post.includes(term)) failures.push(`Post-processing contract is missing: ${term}`);
@@ -69,7 +74,7 @@ for (const event of ['feeding', 'hazard', 'damage', 'regeneration', 'mutation', 
 }
 
 const manifest = JSON.parse(read('assets/reference/spectral-calibration-reference.json'));
-if (manifest.schema !== 'vector-sim-spectral-reference-v2') {
+if (manifest.schema !== 'vector-sim-spectral-reference-v3') {
   failures.push('Unexpected spectral reference schema.');
 }
 if (manifest.width !== 1536 || manifest.height !== 1024) {
@@ -85,6 +90,9 @@ if (
   manifest.semanticAnchorsNm?.death !== 620
 ) {
   failures.push('Spectral reference must clamp 470 nm life to 620 nm death.');
+}
+if (manifest.spectralChromaGain !== 1.18 || manifest.outputSaturation !== 0.14) {
+  failures.push('Spectral reference must record the approved richer-color grade.');
 }
 const png = readFileSync(resolve(root, 'assets/reference/spectral-calibration-reference.png'));
 const width = png.readUInt32BE(16);
@@ -109,6 +117,8 @@ for (const term of [
   'at most 1/255',
   'Linear RGB',
   'Display RGB',
+  '1.18×',
+  '+0.14',
 ]) {
   if (!documentation.includes(term)) failures.push(`P03 documentation is missing: ${term}`);
 }

@@ -56,7 +56,13 @@ export class SpectralCalibrationScene {
 
   constructor(look: SpectralLookProfile) {
     this.look = look;
-    this.sample = evaluateSpectralColor(LIFE_WAVELENGTH_NM, 2.5, look.exposure);
+    this.sample = evaluateSpectralColor(
+      LIFE_WAVELENGTH_NM,
+      2.5,
+      look.exposure,
+      undefined,
+      look.outputSaturation,
+    );
     this.group.name = 'spectral-calibration-scene';
 
     const board = plate(9.5, 5.9, 0, 0);

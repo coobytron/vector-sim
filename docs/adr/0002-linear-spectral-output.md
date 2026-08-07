@@ -18,10 +18,12 @@ capture results.
    for life and 620 nm red for death.
 3. Convert XYZ to linear sRGB, remove negative channels with a neutral lift, and
    peak-normalize chromaticity before applying intensity.
-4. Mix emission, bloom, and exposure in linear light.
-5. Use Three.js `ACESFilmicToneMapping` with fixed per-look exposure.
-6. Apply sRGB transfer exactly once in `OutputPass`.
-7. Sample the final canvas for live, PNG, and video consumers.
+4. Apply a 1.18× source-chroma gain at constant peak intensity.
+5. Mix emission and bloom in linear light, then apply per-look saturation
+   (+0.14 for Porcelain Spectrum). Neutral inputs remain neutral.
+6. Use Three.js `ACESFilmicToneMapping` with fixed per-look exposure.
+7. Apply sRGB transfer exactly once in `OutputPass`.
+8. Sample the final canvas for live, PNG, and video consumers.
 
 ## Consequences
 
@@ -60,3 +62,19 @@ capture results.
 - **Home regression:** Feeding and regeneration remain in the blue life band;
   damage stays below 620 nm; death samples exactly 620 nm; calibration and
   export manifests record both anchors. Unit tests enforce all four rules.
+
+## Amendment — 2026-08-07 richer causal color
+
+- **Owner:** Creative owner, implemented by the P03 implementation owner.
+- **Affected contracts:** spectral conversion, post-processing looks, calibration
+  reference and manifest, live/PNG/video output descriptor, and P03 tests.
+- **Decision:** Raise source chroma to 1.18× and add a pre-ACES per-look
+  saturation pass. Porcelain Spectrum uses +0.14, Technical Wire +0.08, and
+  Ghost Volume +0.12. High-intensity neutral rolloff starts at 4.25× instead of
+  3.25× and contributes less white.
+- **Migration/replay impact:** No simulation, wavelength, event, or deterministic
+  replay value changes. The grade is presentation metadata only; earlier P03
+  captures will render less saturated.
+- **Home regression:** Neutral RGB values must remain exactly neutral through
+  the saturation stage; life remains blue, death remains red, and each look's
+  saturation value is included in the output descriptor and reference manifest.

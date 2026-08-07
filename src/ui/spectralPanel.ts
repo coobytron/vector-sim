@@ -20,6 +20,7 @@ export function createSpectralPanel(
   onSample: (sample: SpectralColorSample) => void,
   onExposure: (exposure: number) => void,
 ): SpectralPanelController {
+  let currentLook = initialLook;
   const panel = document.createElement('aside');
   panel.className = 'spectral-panel';
   panel.innerHTML = `
@@ -48,7 +49,7 @@ export function createSpectralPanel(
       <div><dt>Tone map</dt><dd>ACES filmic</dd></div>
       <div><dt>Output</dt><dd>sRGB · once</dd></div>
     </dl>
-    <p class="spectral-stage">CIE fit → gamut map → linear emission + bloom → ACES → sRGB</p>
+    <p class="spectral-stage">CIE fit → 1.18× chroma → linear bloom → saturation → ACES → sRGB</p>
     <div class="semantic-key" aria-label="Semantic event key">
       <span>${LIFE_WAVELENGTH_NM} nm / life</span><span>${SPECTRAL_CLAMP_MAX_NM} nm / death</span>
       <span>Feed / directed</span><span>Hazard / held</span><span>Damage / fracture</span>
@@ -85,6 +86,8 @@ export function createSpectralPanel(
       Number(wavelength.value),
       Number(intensity.value),
       Number(exposure.value),
+      undefined,
+      currentLook.outputSaturation,
     );
     wavelengthOutput.value = `${sample.wavelengthNm.toFixed(0)} nm`;
     intensityOutput.value = `${sample.intensity.toFixed(2)}×`;
@@ -103,6 +106,7 @@ export function createSpectralPanel(
 
   return {
     setLook(look: SpectralLookProfile): void {
+      currentLook = look;
       exposure.value = String(look.exposure);
       update();
     },
