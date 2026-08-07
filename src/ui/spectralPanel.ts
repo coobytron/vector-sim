@@ -1,7 +1,10 @@
 import {
   evaluateSpectralColor,
   formatRgb,
+  LIFE_WAVELENGTH_NM,
   rgbToCss,
+  SPECTRAL_CLAMP_MAX_NM,
+  SPECTRAL_CLAMP_MIN_NM,
   type SpectralColorSample,
 } from '../spectral/color';
 import type { SpectralLookProfile } from '../spectral/looks';
@@ -28,8 +31,8 @@ export function createSpectralPanel(
       <span class="spectral-chip" data-spectral-chip aria-hidden="true"></span>
     </div>
     <label class="spectral-slider">
-      <span>Wavelength <output data-wavelength-output>532 nm</output></span>
-      <input type="range" min="380" max="780" step="1" value="532" data-wavelength>
+      <span>Wavelength <output data-wavelength-output>${LIFE_WAVELENGTH_NM} nm</output></span>
+      <input type="range" min="${SPECTRAL_CLAMP_MIN_NM}" max="${SPECTRAL_CLAMP_MAX_NM}" step="1" value="${LIFE_WAVELENGTH_NM}" data-wavelength>
     </label>
     <label class="spectral-slider">
       <span>Intensity <output data-intensity-output>2.50×</output></span>
@@ -47,6 +50,7 @@ export function createSpectralPanel(
     </dl>
     <p class="spectral-stage">CIE fit → gamut map → linear emission + bloom → ACES → sRGB</p>
     <div class="semantic-key" aria-label="Semantic event key">
+      <span>${LIFE_WAVELENGTH_NM} nm / life</span><span>${SPECTRAL_CLAMP_MAX_NM} nm / death</span>
       <span>Feed / directed</span><span>Hazard / held</span><span>Damage / fracture</span>
       <span>Regen / outward</span><span>Mutation / pulse</span><span>Death / collapse</span>
     </div>

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { spectralEmissionLinear, type Rgb } from '../spectral/color';
+import { lifeDeathToWavelength, spectralEmissionLinear, type Rgb } from '../spectral/color';
 import { sampleSpectralEvent } from '../spectral/events';
 import type { SpectralLookProfile } from '../spectral/looks';
 
@@ -115,13 +115,13 @@ export class HomeSpectralEmitters {
     updateTravelingColors(
       this.feedPath.geometry.getAttribute('color') as THREE.BufferAttribute,
       phase,
-      (amount) => 410 + amount * 210,
+      (amount) => lifeDeathToWavelength((1 - amount) * 0.06),
       3 * this.look.emissionScale,
     );
     updateTravelingColors(
       this.damagePath.geometry.getAttribute('color') as THREE.BufferAttribute,
       1 - phase,
-      (amount) => (amount < 0.2 ? 410 : 620 + amount * 80),
+      (amount) => lifeDeathToWavelength(0.8 + amount * 0.16),
       3.4 * this.look.emissionScale,
     );
   }

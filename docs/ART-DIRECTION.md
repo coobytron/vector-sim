@@ -82,21 +82,26 @@ translated by backend, but the visual result must preserve these relationships.
 
 ## Spectral emission contract
 
-The renderer converts a wavelength in the visible range (380–700 nm) to linear
-RGB, applies exposure and bloom in linear light, then tone maps once for display.
-A hand-picked RGB rainbow may not substitute for the wavelength pipeline.
+The renderer evaluates wavelength through a CIE-derived conversion, hard-clamps
+authored color to 470–620 nm, applies exposure and bloom in linear light, then
+tone maps once for display. A hand-picked RGB rainbow may not substitute for the
+wavelength pipeline.
 
-Spectral order is violet → blue → cyan → green → amber → red. An event may use a
-narrow band or a traveling sequence, but may not reorder the spectrum simply for
-composition.
+Spectral order is blue → cyan → green → amber → red. **Blue is life; red is
+death.** The 470 nm endpoint belongs to life/feeding/completed regeneration, and
+the 620 nm endpoint belongs to death. Warning and damage may approach red but may
+not occupy 620 nm. Events may use a narrow band or traveling sequence, but may
+not reorder or contradict this axis for composition.
 
 | Event | Color behavior | Spatial rule |
 |---|---|---|
-| Feeding | 410–620 nm sequence moving source → organism | Confined to sampled source, transfer path, and receiving graph edges. |
-| Kill/damage | 620–700 nm with a brief 390–430 nm fracture accent | Begins at contact; travels only through affected connectivity. |
-| Regeneration | 430–590 nm traveling surviving node → new topology | Ends when the new node/edge reaches stable health. |
-| Mutation | One restrained 380–700 nm pulse | Confined to the mutated subgraph; maximum 0.6 s. |
-| Field inspection | Low-intensity wavelength bands keyed to channel | Visible only while inspection is explicitly enabled. |
+| Feeding/life | 470–479 nm moving source → organism, converging on 470 nm | Confined to sampled source, transfer path, and receiving graph edges. |
+| Hazard | 572–587 nm held at the boundary | Warns without claiming death. |
+| Damage | 590–614 nm moving contact → affected graph | Begins at contact; travels only through affected connectivity; never reaches 620 nm. |
+| Regeneration | 488→470 nm traveling surviving node → new topology | Ends at life blue when the new node/edge reaches stable health. |
+| Mutation | One restrained 521–566 nm pulse | Confined to the mutated subgraph; maximum 0.6 s. |
+| Death | Fixed 620 nm red with an intensity fade | Collapses through affected connectivity; no blue accent. |
+| Field inspection | Low-intensity 508–572 nm bands keyed to channel | Visible only while inspection is explicitly enabled. |
 | Idle/navigation | None | White/gray geometry and neutral shadows only. |
 | Collision without damage | None | Communicate through deformation or motion, not hue. |
 

@@ -35,11 +35,16 @@ neutral component required to remove negative channels, then peak-normalizes the
 result. This retains channel ordering while keeping intensity an independent
 parameter.
 
-The conversion accepts 380–780 nm. The compact analytic fit becomes unreliable
-once every component approaches zero, so chromaticity is held at the nearest
-reliable endpoint from 380–400 nm and 660–780 nm while energy is attenuated at
-the visible boundary. Authored event semantics remain within 380–700 nm, as
-required by the art-direction contract.
+The analytic CIE fit remains defined across 380–780 nm internally, but every
+authored emission is hard-clamped to **470–620 nm** before display conversion.
+Requests below 470 nm resolve to the 470 nm endpoint; requests above 620 nm
+resolve to the 620 nm endpoint. Violet and far-red tails cannot enter the live,
+PNG, or video presentation path.
+
+**Blue is life. Red is death.** The 470 nm blue endpoint belongs to feeding,
+health, and completed regeneration. The 620 nm red endpoint is reserved for
+death. Intermediate cyan, green, amber, and orange communicate movement between
+those semantic poles without changing their meaning.
 
 ## HDR intensity and white-energy behavior
 
@@ -72,13 +77,13 @@ semantic state. Hue is never the only distinction.
 
 | Event | Wavelength behavior | Motion | Form cue |
 |---|---|---|---|
-| Feeding | 410–620 nm ordered sweep | Source → agent | Directed transfer wave |
-| Hazard | Restrained 592–628 nm band | Held at boundary | Stationary tension |
-| Damage | 700–620 nm plus brief 410 nm accent | Contact → graph | Fracture and recoil |
-| Regeneration | 430–590 nm ordered sweep | Survivor → growth | Outward reconstruction |
-| Mutation | One 380–700 nm traversal | Confined subgraph pulse | Topology pulse |
-| Death | 700–665 nm fade plus brief 400 nm accent | Collapse → source | Retraction and extinction |
-| Inspection | Low-intensity 440–610 nm band | Static channel band | Diagnostic only |
+| Feeding | 479→470 nm, converging on life blue | Source → agent | Directed transfer wave |
+| Hazard | Restrained 572–587 nm band | Held at boundary | Stationary tension |
+| Damage | 590→614 nm, approaching but never reaching death red | Contact → graph | Fracture and recoil |
+| Regeneration | 488→470 nm, completing at life blue | Survivor → growth | Outward reconstruction |
+| Mutation | One restrained 521–566 nm middle-band pulse | Confined subgraph pulse | Topology pulse |
+| Death | Fixed 620 nm red with intensity fade | Collapse → source | Retraction and extinction |
+| Inspection | Low-intensity 508–572 nm band | Static channel band | Diagnostic only |
 
 In the current Home graybox, the feeding threshold emits an ordered wave along a
 named transfer path. The damage fault holds red/fracture energy at the wall. NCA
@@ -103,7 +108,7 @@ balance of white material inputs.
 
 Open `?calibration=1` to display:
 
-- 17 wavelength swatches across 380–780 nm;
+- 17 wavelength swatches across the 470–620 nm authored clamp;
 - six emission strengths from 0.25× through 8×;
 - neutral-white comparison plates;
 - six semantic motion/form markers;
@@ -114,8 +119,8 @@ The `look` query or UI control accepts `porcelain`, `technical`, or `ghost`. The
 **Save PNG** control captures the final canvas after bloom, ACES, and sRGB output.
 
 Run `npm run capture:spectral` to regenerate the committed 1536×1024 CPU contract
-reference. Its dimensions, SHA-256 digest, wavelength range, tone-map name, and
-single-output-transfer rule are recorded next to the PNG in
+reference. Its dimensions, SHA-256 digest, wavelength clamp, life/death anchors,
+tone-map name, and single-output-transfer rule are recorded next to the PNG in
 `assets/reference/spectral-calibration-reference.json`.
 
 ## Live, PNG, and video agreement

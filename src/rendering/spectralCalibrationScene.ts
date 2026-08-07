@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import {
   evaluateSpectralColor,
+  LIFE_WAVELENGTH_NM,
+  SPECTRAL_CLAMP_MAX_NM,
+  SPECTRAL_CLAMP_MIN_NM,
   spectralEmissionLinear,
   type SpectralColorSample,
   type Rgb,
@@ -53,7 +56,7 @@ export class SpectralCalibrationScene {
 
   constructor(look: SpectralLookProfile) {
     this.look = look;
-    this.sample = evaluateSpectralColor(532, 2.5, look.exposure);
+    this.sample = evaluateSpectralColor(LIFE_WAVELENGTH_NM, 2.5, look.exposure);
     this.group.name = 'spectral-calibration-scene';
 
     const board = plate(9.5, 5.9, 0, 0);
@@ -63,7 +66,8 @@ export class SpectralCalibrationScene {
     const wavelengthCount = 17;
     for (let index = 0; index < wavelengthCount; index += 1) {
       const amount = index / (wavelengthCount - 1);
-      const wavelength = 380 + amount * 400;
+      const wavelength = SPECTRAL_CLAMP_MIN_NM +
+        amount * (SPECTRAL_CLAMP_MAX_NM - SPECTRAL_CLAMP_MIN_NM);
       const color = spectralEmissionLinear(wavelength, 2.2 * look.emissionScale);
       const swatch = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.58, 0.08), emissiveMaterial(color));
       swatch.position.set(-4.05 + amount * 8.1, 2.05, 0);
@@ -74,7 +78,7 @@ export class SpectralCalibrationScene {
     const strengths = [0.25, 0.5, 1, 2, 4, 8];
     for (let index = 0; index < strengths.length; index += 1) {
       const intensity = strengths[index] ?? 1;
-      const color = spectralEmissionLinear(510, intensity * look.emissionScale);
+      const color = spectralEmissionLinear(LIFE_WAVELENGTH_NM, intensity * look.emissionScale);
       const sphere = new THREE.Mesh(
         new THREE.IcosahedronGeometry(0.24 + index * 0.018, 2),
         emissiveMaterial(color),

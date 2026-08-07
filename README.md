@@ -25,7 +25,7 @@ The non-negotiable direction is:
 - designed 3D vector organisms made from nodes, edges, ribbons, branches, and
   occasional faceted membranes;
 - deterministic environment-independent food and kill semantics;
-- localized, wavelength-ordered spectral emission that reveals causality;
+- localized 470–620 nm emission with blue as life and red as death;
 - Home completed and approved before Forest and Pond are adapted;
 - desktop, touch, and opt-in phone motion camera controls.
 
