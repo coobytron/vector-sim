@@ -1,9 +1,9 @@
 /**
- * Signed environmental-field kernel (P07a).
+ * Environmental field kernel.
  *
  * Pure, renderer-independent, and importable in Node: no Three.js, DOM, GPU, or
- * network dependency. Home, Forest, and Pond all sample the same kernel.
- * Simulation wiring, authoring UI, and debug rendering are later P07 slices.
+ * network dependency. P07a supplies the deterministic signed field; P07b adds
+ * generalized scalar/vector provider channels around that stable core.
  */
 export { probeGeometry } from './geometry';
 export type { SurfaceProbe } from './geometry';
@@ -19,6 +19,21 @@ export {
   vec3,
 } from './math';
 export type { Vec3 } from './math';
+export {
+  FieldProviderValidationError,
+  assertValidProviderManifest,
+  createCompositeFieldProvider,
+  createRadialScalarProvider,
+  createSignedFieldProvider,
+  createUniformVectorProvider,
+} from './provider';
+export type {
+  FieldChannelKind,
+  FieldChannelManifest,
+  FieldProvider,
+  FieldProviderManifest,
+  FieldSample,
+} from './provider';
 export { compareSourceId, createSignedEffectField } from './signedField';
 export { EFFECT_GEOMETRY_KINDS } from './types';
 export type {
