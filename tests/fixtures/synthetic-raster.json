@@ -1,0 +1,33 @@
+{
+  "id": "synthetic-habitat-v1",
+  "providerId": "synthetic-raster",
+  "width": 3,
+  "height": 3,
+  "origin": { "x": 0, "y": 0, "z": 0 },
+  "cellSizeMeters": 1,
+  "outside": "clamp",
+  "interpolation": "bilinear",
+  "spatialFrame": "world-xz",
+  "sourceRef": "tests/fixtures/synthetic-raster.json",
+  "checksum": "fixture-v1",
+  "channels": [
+    {
+      "id": "elevation",
+      "kind": "scalar",
+      "semantic": "elevation",
+      "unit": "m",
+      "values": [0, 1, 2, 1, 2, 3, 2, 3, 4]
+    },
+    {
+      "id": "flow",
+      "kind": "vector",
+      "semantic": "flow",
+      "unit": "m/s",
+      "values": [
+        {"x":1,"y":0,"z":0},{"x":1,"y":0,"z":0},{"x":1,"y":0,"z":0},
+        {"x":0,"y":0,"z":1},{"x":0.5,"y":0,"z":0.5},{"x":0,"y":0,"z":1},
+        {"x":-1,"y":0,"z":0},{"x":-1,"y":0,"z":0},{"x":-1,"y":0,"z":0}
+      ]
+    }
+  ]
+}
