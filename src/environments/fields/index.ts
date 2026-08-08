@@ -34,6 +34,13 @@ export type {
   FieldProviderManifest,
   FieldSample,
 } from './provider';
+export { createRasterDatasetProvider } from './rasterDataset';
+export type {
+  RasterChannel,
+  RasterDatasetManifest,
+  RasterScalarChannel,
+  RasterVectorChannel,
+} from './rasterDataset';
 export { compareSourceId, createSignedEffectField } from './signedField';
 export { EFFECT_GEOMETRY_KINDS } from './types';
 export type {
