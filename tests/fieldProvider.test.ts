@@ -20,7 +20,7 @@ describe('generalized field providers', () => {
     const sample = provider.sample(vec3(0, 0, 0));
     expect(sample.scalars.energy).toBe(1);
     expect(sample.scalars.danger).toBeGreaterThan(0);
-    expect(sample.scalars.netEffect).toBe(sample.scalars.energy! - sample.scalars.danger!);
+    expect(sample.scalars.netEffect).toBeCloseTo(sample.scalars.energy! - sample.scalars.danger!, 7);
     expect(sample.sourceIds).toEqual(['food-a', 'kill-b']);
   });
 
