@@ -30,6 +30,6 @@ jobs:
           cache: pip
           cache-dependency-path: training/requirements.txt
       - run: python -m pip install -r training/requirements.txt
-      - run: pytest -q
+      - run: PYTHONPATH=. pytest -q
         working-directory: training
-      - run: python training/smoke_train.py --phenotype branching --out /tmp/branching-smoke.pt
+      - run: PYTHONPATH=training python training/smoke_train.py --phenotype branching --out /tmp/branching-smoke.pt
