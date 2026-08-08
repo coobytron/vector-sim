@@ -1,0 +1,26 @@
+schema_version: 1
+seed: 240807
+phenotype: branching
+model:
+  latent_channels: 16
+  sensor_channels: 6
+  hidden_width: 64
+  update_rate: 0.5
+training:
+  device: cpu
+  batch_size: 4
+  nodes: 32
+  unroll_steps: 16
+  smoke_steps: 8
+  learning_rate: 0.001
+  optimizer: adam
+loss_weights:
+  morphology: 1.0
+  stability: 0.5
+  field_response: 0.75
+  recovery: 0.75
+  boundedness: 0.25
+fixtures:
+  lesion_fraction: 0.25
+  positive_field: 0.8
+  negative_field: -0.8
