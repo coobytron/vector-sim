@@ -38,6 +38,10 @@ function compareId(a: { readonly id: string }, b: { readonly id: string }): numb
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
+function compareContact(a: FieldContact, b: FieldContact): number {
+  return a.sourceId < b.sourceId ? -1 : a.sourceId > b.sourceId ? 1 : 0;
+}
+
 export function assertValidProviderManifest(manifest: FieldProviderManifest): void {
   if (!manifest.id.trim()) throw new FieldProviderValidationError('provider.id must be non-empty');
   const seen = new Set<string>();
@@ -56,7 +60,7 @@ function freezeSample(sample: FieldSample): FieldSample {
     scalars: Object.freeze({ ...sample.scalars }),
     vectors: Object.freeze({ ...sample.vectors }),
     sourceIds: Object.freeze([...sample.sourceIds].sort()),
-    contacts: Object.freeze([...sample.contacts].sort(compareId)),
+    contacts: Object.freeze([...sample.contacts].sort(compareContact)),
   });
 }
 
@@ -110,7 +114,9 @@ export function createRadialScalarProvider(options: {
   const radius = f32(options.radiusMeters);
   const peak = f32(options.peak ?? 1);
   return withBatch({ id: options.id, channels: [{ id: options.channelId, kind: 'scalar' }] }, (point) => {
-    const dx = f32(point.x - center.x); const dy = f32(point.y - center.y); const dz = f32(point.z - center.z);
+    const dx = f32(point.x - center.x);
+    const dy = f32(point.y - center.y);
+    const dz = f32(point.z - center.z);
     const distance = f32(Math.hypot(dx, dy, dz));
     const value = f32(peak * Math.max(0, 1 - distance / radius));
     return { scalars: { [options.channelId]: value }, vectors: {}, sourceIds: [options.id], contacts: [] };
