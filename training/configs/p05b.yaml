@@ -1,4 +1,5 @@
 schema_version: 1
+checkpoint_version: p05b-candidate-v1
 seed: 240807
 phenotype: branching
 model:
