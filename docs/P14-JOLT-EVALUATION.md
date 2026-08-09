@@ -1,183 +1,189 @@
-# P14 — Jolt WASM spatial-query evaluation
+# P14b — Jolt WASM adapter and measurement harness
 
-Spike for issue #37. Evaluates `jrouwe/JoltPhysics.js` as an **optional geometry
-intelligence layer**: collision surfaces, trigger volumes, ray queries, and
-contact sensing — never as a replacement for the graph-NCA, the morphology
-solver, the lifecycle core, or the field-provider API.
+Implementation of issue #39, on top of the backend-neutral spatial-query
+boundary established in PR #38. Findings feed the P14 decision in #37.
 
-**Recommendation: conditional keep.** Jolt is cheap, deterministic enough for
-our usage pattern, and stays fully contained behind an adapter. One measurement
-gate remains before committing it to the production architecture — see
-[Open gate](#open-gate).
+**Recommendation: adopt**, behind the adapter, for geometry-derived queries
+only. Every pass criterion is met and no kill criterion is triggered. The one
+caveat is device hardware — see [What is still unmeasured](#what-is-still-unmeasured).
 
-## Architecture as built
+## What this is
 
-```text
-NCA / lifecycle / fields          renderer
-          │                          │
-          ▼                          │
-   SpatialQueryWorld  ◄──────────────┘  (never sees Jolt)
-     ├── createNullSpatialWorld       physics disabled
-     └── createJoltSpatialWorld       the only module naming Jolt
-```
+Jolt as an **optional geometry intelligence layer**: collision surfaces, trigger
+volumes, ray queries, and contact sensing. Not a replacement for the graph-NCA,
+the morphology solver, the lifecycle core, or the field-provider API.
 
-| File | Responsibility |
-|---|---|
-| `src/physics/types.ts` | `SpatialQueryWorld` contract, scene descriptors, validation. |
-| `src/physics/nullWorld.ts` | Adapter-disabled world; senses nothing, stays operational. |
-| `src/physics/joltWorld.ts` | **The only file that names Jolt.** |
-| `src/physics/joltLoader.ts` | Single-threaded WASM loading, `locateFile` seam. |
-| `src/physics/joltViteAsset.ts` | Browser-only Vite `?url` asset path. |
-| `src/physics/porcelainScene.ts` | Static porcelain test environment, pure data. |
-| `src/physics/spatialProvider.ts` | Bridges observations into the #8 `FieldProvider` contract. |
+| File | Responsibility | Owner |
+|---|---|---|
+| `src/physics/types.ts` | Backend-neutral contract. | PR #38 |
+| `src/physics/normalizeObservations.ts` | Deterministic ordering + sanitisation. | PR #38 |
+| `src/physics/nullSpatialQueryWorld.ts` | Dependency-free fallback. | PR #38 |
+| `src/physics/joltSpatialQueryWorld.ts` | **The only module naming Jolt.** | P14b |
+| `src/physics/joltLoader.ts` | Single-threaded WASM loading. | P14b |
+| `src/physics/joltSpikeFlag.ts` / `joltSpikeRoute.ts` | Opt-in `?spike=jolt` route. | P14b |
+| `src/physics/porcelainScene.ts` | Static test geometry, pure data. | P14b |
+| `scripts/benchmark-jolt.ts` | Node harness (`npm run benchmark:jolt`). | P14b |
 
-Two decisions carry most of the risk reduction:
+## Design decisions that carry the risk
 
-**Proxies are kinematic, not dynamic.** The NCA owns organism motion;
-`setProxyPosition` teleports the proxy each tick. Jolt therefore never
-integrates organism movement, which is what keeps motion from reading as
-rigid-body dynamics and keeps integrator results out of simulation state.
-Physics answers questions; it does not move anything that matters.
+**Proxies are kinematic, not dynamic.** The NCA owns motion;
+`setProxyPosition` teleports the proxy each tick. Jolt integrates nothing that
+is rendered, so no integrator output can enter simulation state and motion
+cannot start reading as rigid-body dynamics. Physics answers questions; it does
+not move anything that matters.
 
-**Object layers separate the three concerns.** Obstacles, organism proxies, and
-sensor volumes each get their own object layer, so an obstacle ray never hits a
-proxy (including the one casting it) and never terminates on a sensor, and
-trigger containment never reports an obstacle. Both bugs showed up in testing
-before the layers were split.
+**Three object layers.** Obstacles, organism proxies, and sensor volumes each
+get their own layer. This was not cosmetic — before the split, two real bugs
+appeared: an obstacle probe hit *the proxy casting it* (reported distance always
+zero), and a sensor volume swallowed a downward ray so the floor was never
+found. Both are regression-tested.
+
+**Proxy management is not on the shared interface.** `SpatialQueryWorld` from
+PR #38 stays exactly as authored; `addProxy` / `observeProxy` / `stateHash` are
+Jolt-class methods. Callers that only need the boundary never see them.
 
 ## Determinism
 
-Jolt is not assumed to be deterministic. The mitigations:
+Mitigations: no engine handle escapes (bodies register against authored string
+IDs); bodies are *created* in sorted authored-ID order so engine indices follow
+the scene rather than caller array order; every result passes through
+`normalizeSpatialObservations`; and kinematic proxies mean no integration result
+feeds back into simulation state.
 
-- **No engine handle escapes.** Bodies are registered against authored string
-  IDs; `BodyID` indices are internal. Bodies are also *created* in sorted
-  authored-ID order, so engine indices are a function of the scene rather than
-  of caller array order.
-- **Every result list is stable-sorted** by authored source ID before it leaves
-  the adapter.
-- **Query outputs are float32-quantized** through the same `vec3`/`f32` helpers
-  the field kernel uses.
-- **No integration feedback.** Kinematic proxies mean no Jolt-computed velocity
-  or position ever enters the simulation hash — only query answers do.
+Measured:
 
-Measured: three repeat runs of a 120-frame scripted path produce an identical
-`stateHash` (`8101103e`), and a scene declared in reverse order produces
-byte-identical observations and hash. Both are covered in
-`tests/spatialWorld.test.ts`.
+| Check | Result |
+|---|---|
+| 3 repeat runs, 120-frame scripted path (Node) | identical — `8101103e` |
+| 3 repeat runs (headless Chromium) | identical — `8101103e` |
+| Reversed scene declaration order | byte-identical observations and hash |
 
-**Not verified:** cross-platform and cross-build determinism. Everything here
-ran on one Linux x64 build of Jolt 1.1.0. Jolt makes no cross-platform bit-exact
-guarantee by default, so a different CPU or a rebuilt WASM could differ in the
-last bits of a ray fraction. This matters less than it normally would because of
-the no-integration-feedback property above, but replay across machines must not
-be claimed until it is measured.
+Node and Chromium producing the **same** hash on the same architecture is a
+better result than expected, and it follows from the design: the hash covers
+proxy positions the caller set, and query answers are sorted and sanitised.
+
+**Still unproven: cross-*architecture* determinism.** Both runtimes here were
+x64 with the same WASM build. Jolt gives no bit-exact cross-platform guarantee,
+so replay across machines must not be claimed until measured on arm64.
 
 ## Measurements
 
-Captured by `npm run benchmark:jolt` →
-`benchmark-results/p14-jolt-2026-08-09.json`.
+### Browser — headless Chromium 141, 1280×720, DPR 1
 
-Host: Linux x64, Intel Xeon @ 2.80 GHz, 4 cores, Node v22. Jolt 1.1.0,
-single-threaded WASM. 180 sampled frames after 30 warmup frames.
+`benchmark-results/p14b-jolt-browser-2026-08-09.json`, captured via
+`?spike=jolt` against `vite preview`.
 
-| Metric | Desktop tier (8 organisms) | Mobile tier (4 organisms) |
+| Metric | Desktop tier (8 proxies) | Mobile tier (4 proxies) |
 |---|---:|---:|
-| WASM cold init | **96.2 ms** | 27.1 ms (module already compiled in-process) |
-| RSS delta | 18.9 MB | 4.3 MB |
-| Physics step p50 / p95 | 0.053 / 0.088 ms | 0.031 / 0.062 ms |
-| Query + sensor p50 / p95 | 0.386 / 0.729 ms | 0.196 / 0.370 ms |
-| Simulation p50 / p95 | 4.063 / 5.089 ms | 1.019 / 1.164 ms |
-| **Total frame p50 / p95** | **4.549 / 5.514 ms** | **1.256 / 1.553 ms** |
-| Frame budget | 16.67 ms | 33.33 ms |
-| Headroom at p95 | 11.15 ms | 31.78 ms |
+| WASM cold init (fetch + compile + world) | **145.7 ms** | — |
+| WASM transferred | **2,021,869 bytes** (uncompressed) | — |
+| Physics step p95 | 0.100 ms | 0.100 ms |
+| Query + sensor p95 | 1.200 ms | 0.600 ms |
+| **Total p95** | **1.305 ms** | **0.600 ms** |
+| Budget / headroom at p95 | 16.67 ms / **15.36 ms** | 33.33 ms / **32.73 ms** |
 
-Module size, single-threaded build:
+Chromium clamps `performance.now()` to 0.1 ms, so these are quantised — treat
+0.100 ms as "at or below one tick of timer resolution", not a precise figure.
 
-| Asset | Bytes |
-|---|---:|
-| `jolt-physics.wasm.wasm` | 2,021,569 (1.93 MB) |
-| `jolt-physics.wasm.js` glue | 964,712 (0.92 MB) |
-| npm package unpacked | ~46 MB (all build variants) |
+### Node — Linux x64, Xeon @ 2.80 GHz
 
-Reading these honestly:
+`benchmark-results/p14-jolt-2026-08-09.json`. Includes the headless simulation
+in the frame so the physics cost can be read in context.
 
-- **The physics step is free.** 0.05 ms at desktop tier is noise against a
-  16.67 ms budget. Static geometry plus kinematic proxies means Jolt has almost
-  nothing to integrate.
-- **Queries dominate the physics cost and are still cheap.** 8 organisms × 6
-  probe rays + 8 trigger queries = 56 queries in 0.386 ms, roughly 7 µs each.
-- **Only the first init pays full cold cost.** The mobile tier's 27 ms reflects
-  an already-compiled module in the same process; 96 ms is the honest
-  cold-start figure, and a browser will additionally pay ~2.9 MB of transfer.
-- **Bundle impact today is zero.** The adapter is not wired into the app, and
-  the production bundle is byte-identical at 644.69 kB.
+| Metric | Desktop tier | Mobile tier |
+|---|---:|---:|
+| WASM cold init | 109 ms | 86 ms (module already compiled in-process) |
+| RSS delta | 20.8 MB | — |
+| Physics step p50 / p95 | 0.052 / 0.092 ms | 0.036 / 0.055 ms |
+| Query + sensor p50 / p95 | 0.814 / 1.471 ms | 0.420 / 0.791 ms |
+| Simulation + physics total p95 | 6.441 ms | 2.520 ms |
+| Headroom at p95 | 10.23 ms | 30.81 ms |
 
-## Pass criteria
+Module on disk: `jolt-physics.wasm.wasm` 1.93 MB, glue 0.92 MB. The npm package
+unpacks to ~46 MB because it ships every build variant.
 
-- [x] Jolt fully hidden behind an internal adapter — one file names it, and a
-      test asserts only string IDs cross the boundary.
-- [x] Home-style static collision and trigger volumes work with no
-      environment-specific organism code.
-- [x] A ray-derived observation reaches an organism through the shared
-      `FieldProvider` contract (`obstacleDistance`, `grounded`, `groundNormal`,
-      `obstacleDirection`).
-- [x] Observations normalized into deterministic ordering before state updates.
-- [x] Organism motion cannot be dominated by rigid-body dynamics — proxies are
-      kinematic and the NCA remains the only mover.
-- [x] Disabling the adapter leaves the headless simulation operational
-      (`createNullSpatialWorld`, covered by tests).
-- [x] Single-threaded WASM meets the provisional mobile CPU budget, with
-      31.78 ms of headroom at p95 — **CPU-side only, see the open gate**.
-- [x] Memory and startup costs documented above.
-- [x] Repeat-run `stateHash()` documented; identical within a build.
-- [x] The adapter takes a scene descriptor, so Home, Forest, and Pond reuse it
-      without scene-specific forks.
+Reading these honestly: **the physics step is free** — static geometry plus
+kinematic proxies leaves Jolt almost nothing to integrate. **Queries dominate
+and are still cheap**, roughly 7 µs each. The real cost is the ~2 MB download.
 
-## Kill criteria
+## Vite integration
 
-| Criterion | Verdict |
-|---|---|
-| Materially destabilizes deterministic replay | **Not triggered.** Kinematic proxies keep integrator output out of simulation state; queries are sorted and quantized. Cross-platform remains unproven. |
-| Unacceptable mobile startup or memory pressure | **Not triggered on CPU/memory** (4.3 MB RSS). Transfer size is the real cost and is unmeasured on device. |
-| Mobile targets need multithreaded WASM | **Not triggered.** Single-threaded has 31.78 ms of headroom at p95. |
-| Jolt types leak into NCA/field/lifecycle/renderer | **Not triggered.** One file imports Jolt. |
-| Motion dominated by rigid-body dynamics | **Not triggered.** Jolt integrates nothing that is rendered. |
-| Duplicates the field-provider system | **Not triggered.** It feeds that system as another provider. |
+The obvious approach — `import wasmUrl from 'jolt-physics/dist/jolt-physics.wasm.wasm?url'`
+— **does not work**. The package's `exports` map has no `./dist/*` entry, so
+bundler resolution fails:
 
-## Open gate
+```text
+"./dist/jolt-physics.wasm.wasm" is not exported under the conditions
+["module", "browser", "production", "import"]
+```
 
-The one number I could not produce here: **device-class browser performance on
-the D011 baselines** (MacBook Pro M1 Max / Safari 26.x, and iPhone 16 Pro /
-Mobile Safari). This spike ran in Node on a 4-core Xeon container. What that
-leaves unmeasured:
+It turns out no `locateFile` is needed at all: Vite/rolldown follows the glue's
+own internal reference and emits the `.wasm` as a hashed asset
+(`jolt-physics.wasm-CvlHROwB.wasm`), rewriting the URL correctly. Verified in a
+real browser. An earlier iteration staged the file into `public/` to work around
+the exports map; that was removed once the bundler path was confirmed.
 
-- real WASM transfer and compile time over a mobile network,
-- Safari's WASM compilation behaviour specifically,
-- GPU/render interaction, since nothing was rendered here,
-- memory pressure on a real device against the P02 mobile budget.
+## Opt-in route
 
-The CPU-side headroom is large enough that I would be surprised by a failure,
-but "surprised" is not "measured". Before Jolt is committed to the production
-architecture, the browser benchmark route should load the adapter and capture
-init, transfer, and frame cost on both baselines.
+`?spike=jolt` runs the measurement harness and renders the JSON. Everything
+Jolt-related is behind dynamic imports, and the flag itself lives in a separate
+module so the static import in `main.ts` does not drag the route into the
+default chunk.
 
-## Deferred and out of scope
+Verified in the browser: the default route **fetches no `.wasm` at all** and
+mounts its canvas normally. Default bundle 646.42 kB versus 644.69 kB before —
+the +1.73 kB is the flag check, not the engine.
 
-- No Jolt rigid body per NCA cell; one proxy per organism, as specified.
-- No soft-body organisms, no fluid, no multithreaded WASM.
-- Trigger containment is a point test against the proxy centre. Volume-overlap
-  semantics (proxy partially inside) would need `CollideShape` instead.
-- Contact sensing is six axis-aligned probe rays, not a true contact manifold.
-  Adequate for obstacle proximity and ground state; a swept or shape-cast query
-  would be needed for tight navigation.
-- The adapter is not wired into the running app. That is a deliberate scope
-  boundary for a spike — it keeps the bundle unchanged and the kill decision
-  cheap.
+## Pass criteria (#39)
+
+- [x] `JoltSpatialQueryWorld` satisfies the PR #38 contract.
+- [x] Single-threaded Jolt WASM loads under Vite — verified in Chromium.
+- [x] Static environment collision/query geometry works in the browser.
+- [x] A Jolt-derived observation is visible in benchmark output
+      (`sampleObservation`, a `ray-hit` on `floor` with point and normal).
+- [x] All observations pass through deterministic normalization.
+- [x] Adapter cleanup explicitly destroys owned Jolt/WASM objects; `dispose()`
+      is idempotent and later queries throw.
+- [x] `npm run qa` green.
+- [x] Startup/query/frame costs documented for both tiers.
+- [x] Findings posted back to #37.
+
+## What is still unmeasured
+
+**The D011 baseline devices.** Everything here ran in a Linux container —
+headless Chromium and Node, not MacBook Pro M1 Max / Safari 26.x and not
+iPhone 16 Pro / Mobile Safari. Specifically open:
+
+- Safari's WASM compile behaviour, which differs from V8's,
+- real transfer time over a mobile network (2 MB uncompressed; gzip/brotli on a
+  real host should cut this substantially, and was not exercised by
+  `vite preview`),
+- interaction with actual rendering, since nothing was drawn during these runs,
+- on-device memory pressure against the P02 mobile budget.
+
+The headroom is wide — 32.7 ms of a 33.3 ms mobile budget — so I would be
+surprised by a failure. But that is a prediction, not a measurement, and the
+download size is the part least likely to be forgiving.
+
+`jsHeapDeltaBytes` in the browser report is unreliable (it captures GC noise
+around module instantiation); use the Node RSS figure instead.
+
+## Deferred
+
+- Trigger containment is an overlap test against a small sphere at the proxy
+  centre. True volume-overlap semantics would need a full `CollideShape` pass.
+- Contact sensing is six axis-aligned probe rays, not a contact manifold.
+  Adequate for obstacle proximity and ground state; tight navigation would want
+  swept or shape-cast queries.
+- No Jolt body per NCA cell, no soft bodies, no fluid, no multithreaded WASM —
+  all explicitly out of scope.
+- The adapter is not wired into the simulation loop; only the opt-in route uses
+  it.
 
 ## Commands
 
 ```bash
-npm run test -- tests/spatialWorld.test.ts   # 19 tests, incl. determinism
-npm run benchmark:jolt                       # regenerate the measurements
-npm run qa
+npm run test -- tests/spatialWorld.test.ts   # adapter + determinism
+npm run benchmark:jolt                       # Node measurements
+npm run build && npm run preview             # then open /?spike=jolt
 ```

@@ -17,12 +17,10 @@ import { performance } from 'node:perf_hooks';
 import process from 'node:process';
 import { summarize } from '../src/benchmark/statistics';
 import { loadJolt } from '../src/physics/joltLoader';
-import { createJoltSpatialWorld } from '../src/physics/joltWorld';
+import { JoltSpatialQueryWorld } from '../src/physics/joltSpatialQueryWorld';
 import { PORCELAIN_TEST_SCENE } from '../src/physics/porcelainScene';
-import { createSpatialFieldProvider } from '../src/physics/spatialProvider';
 import { HeadlessSimulation } from '../src/simulation/headlessSimulation';
 import { QUALITY_TIERS, type QualityTierName } from '../src/simulation/types';
-import { vec3 } from '../src/environments/fields';
 
 const require = createRequire(import.meta.url);
 const WARMUP_FRAMES = 30;
@@ -41,7 +39,11 @@ function heapBytes(): number {
 /** Deterministic orbit so proxies traverse the scene the same way every run. */
 function proxyPosition(index: number, frame: number, count: number) {
   const phase = (index / count) * Math.PI * 2 + frame * 0.01;
-  return vec3(Math.cos(phase) * 1.6, 0.45 + Math.sin(frame * 0.02) * 0.15, Math.sin(phase) * 1.2);
+  return {
+    x: Math.cos(phase) * 1.6,
+    y: 0.45 + Math.sin(frame * 0.02) * 0.15,
+    z: Math.sin(phase) * 1.2,
+  };
 }
 
 async function runTier(tierName: QualityTierName) {
@@ -50,7 +52,7 @@ async function runTier(tierName: QualityTierName) {
 
   const rssBefore = heapBytes();
   const initStart = performance.now();
-  const world = await createJoltSpatialWorld({
+  const world = await JoltSpatialQueryWorld.create({
     scene: PORCELAIN_TEST_SCENE,
     loadJolt: () => loadJolt(),
   });
@@ -60,16 +62,13 @@ async function runTier(tierName: QualityTierName) {
   for (let index = 0; index < organisms; index += 1) {
     world.addProxy({ id: `organism-${index}`, radius: 0.12, position: proxyPosition(index, 0, organisms) });
   }
-  const providers = Array.from({ length: organisms }, (_unused, index) =>
-    createSpatialFieldProvider(world, `organism-${index}`),
-  );
 
   const simulation = new HeadlessSimulation({ tier, seed: 0x53504543 });
 
   for (let frame = 0; frame < WARMUP_FRAMES; frame += 1) {
     simulation.step();
     world.step(1 / 30);
-    for (const provider of providers) provider.sample(vec3(0, 0, 0));
+    for (const id of world.proxyIds) world.observeProxy(id);
   }
 
   const simMs: number[] = [];
@@ -89,8 +88,8 @@ async function runTier(tierName: QualityTierName) {
     world.step(1 / 30);
     const afterPhysics = performance.now();
 
-    for (const provider of providers) {
-      provider.sample(vec3(0, 0, 0));
+    for (const id of world.proxyIds) {
+      world.observeProxy(id);
     }
     const end = performance.now();
 
@@ -101,7 +100,8 @@ async function runTier(tierName: QualityTierName) {
   }
 
   const hash = world.stateHash();
-  world.destroy();
+  const sampleObservation = JSON.stringify(world.observeProxy('organism-0')[0] ?? null);
+  world.dispose();
 
   const total = summarize(frameMs);
   return {
@@ -120,24 +120,25 @@ async function runTier(tierName: QualityTierName) {
     headroomAtP95: Number((tier.targetFrameMs - total.p95).toFixed(3)),
     estimatedFpsAtP50: Number((1000 / Math.max(total.median, 0.0001)).toFixed(1)),
     stateHash: hash,
+    sampleObservation,
   };
 }
 
 async function repeatabilityCheck(): Promise<{ runs: string[]; identical: boolean }> {
   const runs: string[] = [];
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const world = await createJoltSpatialWorld({
+    const world = await JoltSpatialQueryWorld.create({
       scene: PORCELAIN_TEST_SCENE,
       loadJolt: () => loadJolt(),
     });
-    world.addProxy({ id: 'a', radius: 0.12, position: vec3(0, 0.6, 0) });
+    world.addProxy({ id: 'a', radius: 0.12, position: { x: 0, y: 0.6, z: 0 } });
     for (let frame = 0; frame < 120; frame += 1) {
       world.setProxyPosition('a', proxyPosition(0, frame, 1));
       world.step(1 / 30);
-      world.observe('a');
+      world.observeProxy('a');
     }
     runs.push(world.stateHash());
-    world.destroy();
+    world.dispose();
   }
   return { runs, identical: new Set(runs).size === 1 };
 }

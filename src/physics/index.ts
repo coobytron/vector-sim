@@ -1,27 +1,22 @@
 /**
- * Spatial-query layer (P14 Jolt spike).
+ * Spatial-query layer.
  *
- * `SpatialQueryWorld` is the whole public surface. `joltWorld.ts` is the only
- * module that names Jolt; everything else — including this barrel — deals in
- * authored string IDs and plain vectors, so the engine can be swapped or
- * removed without touching NCA, field, lifecycle, or renderer code.
+ * The backend-neutral contract in `types.ts` and the null fallback come from
+ * PR #38; `joltSpatialQueryWorld.ts` is the P14b Jolt implementation of it and
+ * the only module that names Jolt.
  *
- * `createJoltSpatialWorld` is intentionally NOT re-exported here: importing it
+ * `JoltSpatialQueryWorld` is intentionally NOT re-exported here: importing it
  * pulls the WASM glue into the module graph. Import it directly from
- * `./physics/joltWorld` at the one place that opts into physics.
+ * `./physics/joltSpatialQueryWorld` at the one place that opts into physics.
  */
-export { createNullSpatialWorld } from './nullWorld';
+export { normalizeSpatialObservations } from './normalizeObservations';
+export { NullSpatialQueryWorld } from './nullSpatialQueryWorld';
 export { PORCELAIN_TEST_SCENE } from './porcelainScene';
-export { SPATIAL_CHANNELS, createSpatialFieldProvider, normalizeObservation } from './spatialProvider';
-export { PROBE_RANGE_METERS, SpatialWorldError, validateScene } from './types';
 export type {
-  BodyRole,
-  ProxyDescriptor,
-  ProxyObservation,
-  RayObservation,
   RayQuery,
-  SceneDescriptor,
+  SpatialObservation,
+  SpatialObservationKind,
   SpatialQueryWorld,
-  StaticBodyDescriptor,
-  StaticShape,
+  SphereQuery,
+  Vec3Like,
 } from './types';
