@@ -1,6 +1,6 @@
-# Vector NCA training scaffold
+# Vector NCA training
 
-This folder implements the P05a deterministic training/evaluation contract for issue #25 and parent #6. It is deliberately a **smoke-training scaffold**, not a claim that Branching, Ribbon, or Radial have reached production phenotype quality.
+This folder contains the deterministic P05 training pipeline for issue #6. P05a established the reproducible smoke-training and checkpoint contract; P05b adds bounded candidate training, longer-horizon evaluation, and explicit comparison against an untrained baseline.
 
 ## Setup
 
@@ -19,34 +19,41 @@ cd training
 pytest -q
 ```
 
-The tests cover exact fixture repeatability, same-seed rollout repeatability, the shared phenotype/evaluation contract, lesion and positive/negative field fixtures, checkpoint round-trip, manifest metadata, and model-card creation.
+The tests cover fixture repeatability, same-seed rollout repeatability, phenotype/evaluation contracts, lesion and positive/negative field fixtures, checkpoint round-trip, model-card creation, and deterministic bounded-training output.
 
-## CPU smoke training
+## P05a smoke training
 
 ```bash
-python training/smoke_train.py \
+PYTHONPATH=training python training/smoke_train.py \
   --config training/configs/reference.yaml \
   --phenotype branching \
   --out training/output/branching-smoke.pt
 ```
 
-Repeat for `ribbon` and `radial`. The three phenotype names select different target descriptors while preserving one model/state/checkpoint contract.
+## P05b bounded candidate training
 
-A run creates:
+Train all three phenotype families:
 
-- `.pt` PyTorch state dictionary
-- `.manifest.json` with architecture, phenotype, dimensions, dtype, version, SHA-256, training seed, metrics, limitations, and intended use
-- `.model-card.md` with the same core provenance in readable form
+```bash
+PYTHONPATH=training python training/run_bounded.py \
+  --config training/configs/p05b.yaml \
+  --phenotype all \
+  --out training/artifacts/p05b
+```
+
+Each phenotype emits a checkpoint, manifest, model card, and evaluation report containing trained metrics, untrained-baseline metrics, and deltas. The default P05b config evaluates for substantially longer than the training unroll to expose divergence rather than hiding it inside a short optimization horizon.
+
+The checkpoint manifest now records `update_rate` explicitly so P06 inference can reconstruct execution semantics from exported metadata instead of relying on a runtime default.
 
 ## State contract
 
-The reference model accepts per-node latent state plus sensor channels. The current fixture reserves six sensor channels for positive field, negative field, directional gradient, habitat-like center weighting, alive/energy gate, and a future/custom channel. P05b may refine semantics, but P06 should rely on manifest dimensions and explicit channel metadata rather than hard-coded phenotype branches.
+The reference model accepts per-node latent state plus sensor channels. Six sensor channels are currently reserved for positive field, negative field, directional gradient, habitat-like center weighting, alive/energy gate, and a future/custom channel. P06 should rely on manifest dimensions and explicit metadata rather than phenotype-specific branches.
 
-The model uses local state plus a deterministic rolled neighbor as a compact reference perception operator. This is intentionally simple enough to validate the export contract before investing in the final learned graph neighborhood/perception architecture.
+The model uses local state plus a deterministic rolled neighbor as a compact reference perception operator. This remains intentionally small while phenotype objectives, graph perception, and runtime export are validated.
 
 ## Metrics
 
-The scaffold emits the metric families required by #6:
+The training path reports:
 
 - growth
 - stability error
@@ -56,19 +63,17 @@ The scaffold emits the metric families required by #6:
 - bounded maximum state
 - NaN rate
 - phenotype target loss
+- delta versus the same seeded untrained model
 
-P05b must replace the smoke proxy losses/targets with validated morphology, locomotion, field-response, and regeneration objectives and evaluate beyond the training unroll.
+These metrics are evidence for candidate selection, not proof of visual quality. Final acceptance still requires preview sequences, morphology review, regeneration evidence, and physical-device/browser validation.
 
 ## Determinism limits
 
-`torch.use_deterministic_algorithms(True)` plus pinned dependencies and explicit Python/NumPy/Torch seeds are used. Exact byte-identical trained weights are only expected inside the pinned CPU environment. Cross-device/GPU execution may require tolerance-based comparisons; those tolerances must be measured before #6 is closed.
+`torch.use_deterministic_algorithms(True)` plus pinned dependencies and explicit Python/NumPy/Torch seeds are used. Exact byte-identical trained weights are expected only inside the pinned CPU environment. Cross-device/GPU execution may require tolerance-based comparisons and must be measured before #6 is closed.
 
-## Non-goals of P05a
+## Current non-goals
 
-- production-trained phenotype checkpoints
-- browser inference
-- GPU/WebGL export
-- final graph neighborhood operator
-- evidence of learned regeneration quality
+- claiming production-ready phenotype quality
+- browser GPU inference
 - environment-specific behavior
-- changes to Claude-owned field work in #22
+- replacing the shared field-provider contract
