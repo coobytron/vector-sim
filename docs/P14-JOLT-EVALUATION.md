@@ -188,14 +188,22 @@ selecting text out of a `<pre>` on a phone is miserable. Captures are named
 
 To close the gate:
 
-1. `npm run build && npm run preview`, then open `/?spike=jolt` on a MacBook Pro
-   M1 Max in Safari 26.x and tap **Download JSON**.
-2. Repeat on an iPhone 16 Pro in Mobile Safari.
+1. `npm run build`, then `npm run preview` and open `/?spike=jolt` on a MacBook
+   Pro M1 Max in Safari 26.x. Tap **Download JSON**.
+2. For the iPhone 16 Pro, use `npm run preview:lan` instead — the default
+   `preview` binds `127.0.0.1`, so a phone on the same network cannot reach it.
+   Open `http://<mac-lan-ip>:4173/?spike=jolt` in Mobile Safari and tap
+   **Download JSON**.
 3. Drop both files into `benchmark-results/` and run:
 
 ```bash
 npm run compare:jolt -- benchmark-results/p14b-jolt-*.json
 ```
+
+Note that `vite preview` serves the WASM **uncompressed**, so the transfer
+figure it reports is a worst case — a real host with gzip or brotli will be
+substantially smaller. Treat the captured number as an upper bound rather than
+the shipping cost.
 
 That prints a per-device markdown table, a determinism section comparing state
 hashes across devices, and a suggested verdict. It refuses to declare the gate
