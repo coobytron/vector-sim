@@ -314,7 +314,7 @@ export function createLifecycleSystem(options: LifecycleSystemOptions): Lifecycl
       die(organism, 'damage');
       return;
     }
-    if (organism.starvedSeconds >= rates.starvationSeconds) {
+    if (rates.starvationSeconds !== null && organism.starvedSeconds >= rates.starvationSeconds) {
       die(organism, 'starvation');
       return;
     }

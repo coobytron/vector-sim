@@ -83,6 +83,9 @@ def test_checkpoint_manifest_and_model_card_round_trip(tmp_path):
     assert len(manifest["sha256"]) == 64
     assert manifest["architecture"] == "vector_nca_mlp_v1"
     assert manifest["dtype"] == "float32"
+    # P06a needs update_rate to reproduce inference from the manifest alone.
+    assert manifest["update_rate"] == model.update_rate
+    assert "Update rate" in checkpoint.with_suffix(".model-card.md").read_text()
     assert checkpoint.with_suffix(".model-card.md").exists()
     restored = make_model(config)
     restored.load_state_dict(torch.load(checkpoint, map_location="cpu", weights_only=True))

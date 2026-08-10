@@ -92,10 +92,24 @@ Death checks run in a fixed order so the recorded cause is deterministic when
 both thresholds are crossed on one tick:
 
 1. `damage ≥ 1` → cause `damage`
-2. `starvedSeconds ≥ starvationSeconds` → cause `starvation`
+2. `starvedSeconds ≥ starvationSeconds` → cause `starvation` — **only when an
+   authored policy opts in**
 
 `starvedSeconds` accumulates only while energy is exactly zero and resets
-otherwise.
+otherwise. It is still tracked when starvation death is disabled, so a caller
+can observe how long an organism has been empty without that killing it.
+
+### Starvation is opt-in and disabled by default
+
+`SIMULATION-CONTRACT.md` describes no starvation death. Zero energy only means
+a cell "may sense and retract but cannot propose a birth or repair", and death
+is viability-driven: *"the organism is dead when all core cells are inactive or
+the mean core health remains zero for 30 ticks."*
+
+So `starvationSeconds` defaults to `null`. Picking any number would have added a
+death mode the contract does not describe, and would have quietly become
+canonical the moment something depended on it. Set it to a number to enable the
+policy explicitly; `0` kills on the first tick at zero energy.
 
 **Death is terminal.** A dead organism is skipped by `step()`, produces no
 further events, and keeps its final state. The only exit is `respawn(id)`, which
@@ -145,10 +159,11 @@ npm run qa
 - **Movement is caller-driven.** `moveTo` exists so fixtures can script a path;
   this slice has no locomotion policy, and the acceleration/velocity model in
   the simulation contract is not implemented here.
-- **`starvationSeconds` has no contract source.** The simulation contract
-  specifies drain and repair rates but never says how long zero energy is
-  survivable. The default of 8 s is a placeholder chosen to make starvation
-  observable in fixtures; it needs a creative decision before Home approval.
+- **Death has no confirmation window.** The contract requires mean core health
+  to stay at zero for 30 ticks before an organism counts as dead, but that rule
+  is about aggregate health across core cells, which does not exist until the
+  graph lands. This slice deactivates at `viability = 0` immediately. Revisit
+  when per-cell state arrives.
 - **One organism, one sample point.** The contract's real model samples fields
   per cell across a graph. This slice treats an organism as a single point so
   the metabolic contract can be settled before the graph lands; per-cell

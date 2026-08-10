@@ -62,17 +62,16 @@ Tensor names are PyTorch `state_dict` keys and shapes follow PyTorch's
 manifest dimensions — see `expectedTensorShapes` — so no phenotype adds, removes,
 or reshapes a tensor. Branching, Ribbon, and Radial load through one code path.
 
-### Why `updateRate` sits on the container
+### Where `updateRate` comes from
 
-`VectorNCA` applies `latent + delta × update_rate`, and `update_rate` lives in
-`training/configs/reference.yaml` — but `save_checkpoint` does not copy it into
-the manifest. Inference cannot be reproduced without it, so the container
-carries it explicitly rather than the loader guessing `0.5`.
+`VectorNCA` applies `latent + delta × update_rate`, so inference cannot be
+reproduced without it. `save_checkpoint` now writes `update_rate` into the
+manifest, and **the manifest is authoritative**.
 
-**Follow-up for whoever next owns `training/**`:** add `update_rate` to the
-manifest dict in `save_checkpoint`, and have the exporter populate
-`container.updateRate` from it. This slice deliberately does not touch
-`training/**` to stay clear of P05b (#31).
+`container.updateRate` remains as a fallback for checkpoints exported before
+that field existed. When both are present they must agree — a container rate
+that contradicts the manifest is a `container` validation error rather than a
+silent preference.
 
 ## Validation order
 

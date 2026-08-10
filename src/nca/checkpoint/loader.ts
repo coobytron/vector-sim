@@ -177,9 +177,29 @@ export function loadBrowserCheckpoint(candidate: unknown): LoadedCheckpoint {
   const manifest = validateCheckpointManifest(container.manifest);
   const architecture = manifest.architecture as SupportedArchitecture;
 
-  if (typeof container.updateRate !== 'number' || !Number.isFinite(container.updateRate)) {
-    throw new CheckpointValidationError('container', 'updateRate must be a finite number');
+  // The manifest is authoritative once it carries update_rate; the container
+  // field remains for checkpoints exported before that existed.
+  const manifestRate = manifest.update_rate;
+  if (manifestRate !== undefined && (typeof manifestRate !== 'number' || !Number.isFinite(manifestRate))) {
+    throw new CheckpointValidationError('manifest', 'update_rate must be a finite number');
   }
+  if (manifestRate === undefined && (typeof container.updateRate !== 'number' || !Number.isFinite(container.updateRate))) {
+    throw new CheckpointValidationError(
+      'container',
+      'updateRate must be a finite number when the manifest has no update_rate',
+    );
+  }
+  if (
+    manifestRate !== undefined &&
+    typeof container.updateRate === 'number' &&
+    Math.fround(container.updateRate) !== Math.fround(manifestRate)
+  ) {
+    throw new CheckpointValidationError(
+      'container',
+      `updateRate ${container.updateRate} contradicts manifest update_rate ${manifestRate}`,
+    );
+  }
+  const updateRate = manifestRate ?? (container.updateRate as number);
   if (typeof container.payloadBase64 !== 'string') {
     throw new CheckpointValidationError('payload', 'payloadBase64 must be a string');
   }
@@ -281,7 +301,7 @@ export function loadBrowserCheckpoint(candidate: unknown): LoadedCheckpoint {
     latentChannels: manifest.latent_channels,
     sensorChannels: manifest.sensor_channels,
     hiddenWidth: manifest.hidden_width,
-    updateRate: Math.fround(container.updateRate),
+    updateRate: Math.fround(updateRate),
     tensors,
     payloadSha256: container.payloadSha256,
   };

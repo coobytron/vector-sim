@@ -5,3 +5,7 @@ coverage/
 .DS_Store
 *.log
 benchmark-results/local-*.json
+
+# Python bytecode
+__pycache__/
+*.pyc

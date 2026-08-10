@@ -180,13 +180,75 @@ export async function runJoltBrowserSpike(root: HTMLElement): Promise<JoltBrowse
     repeatRunsIdentical: new Set(repeatRunHashes).size === 1,
   };
 
+  renderReport(root, report);
+  console.info('[p14b] jolt browser spike', report);
+  return report;
+}
+
+/** Short device slug for the capture filename, e.g. `iphone-safari`. */
+function deviceSlug(userAgent: string): string {
+  const device = /iPhone/.test(userAgent)
+    ? 'iphone'
+    : /iPad/.test(userAgent)
+      ? 'ipad'
+      : /Macintosh/.test(userAgent)
+        ? 'mac'
+        : 'other';
+  const engine = /CriOS|Chrome/.test(userAgent)
+    ? 'chrome'
+    : /Firefox|FxiOS/.test(userAgent)
+      ? 'firefox'
+      : /Safari/.test(userAgent)
+        ? 'safari'
+        : 'unknown';
+  return `${device}-${engine}`;
+}
+
+/**
+ * Renders the capture with one-tap download and copy.
+ *
+ * The D011 baselines are a MacBook and a phone; selecting JSON out of a `<pre>`
+ * on a phone is miserable, so the buttons are the point of this view.
+ */
+function renderReport(root: HTMLElement, report: JoltBrowserReport): void {
+  const verdicts = report.tiers
+    .map((tier) => {
+      const withinBudget = tier.totalFrameMs.p95 <= tier.budgetMs;
+      return `<li><strong>${tier.tier}</strong>: total p95 ${tier.totalFrameMs.p95.toFixed(2)} ms of ${tier.budgetMs.toFixed(2)} ms budget — ${withinBudget ? 'within budget' : 'OVER BUDGET'}</li>`;
+    })
+    .join('');
+
   root.innerHTML = `
     <main class="fatal">
       <p class="eyebrow">P14b — Jolt browser spike</p>
       <h1>Measurements captured</h1>
-      <pre style="text-align:left;overflow:auto;max-height:70vh">${JSON.stringify(report, null, 2)}</pre>
+      <ul style="text-align:left">
+        <li>cold init ${report.coldInitMs.toFixed(1)} ms</li>
+        <li>wasm transferred ${report.transferredWasmBytes === null ? 'unknown' : `${(report.transferredWasmBytes / 1024).toFixed(0)} KB`}</li>
+        ${verdicts}
+        <li>repeat runs identical: ${report.repeatRunsIdentical ? 'yes' : 'NO'}</li>
+      </ul>
+      <p>
+        <button id="p14b-download" type="button">Download JSON</button>
+        <button id="p14b-copy" type="button">Copy JSON</button>
+      </p>
+      <pre style="text-align:left;overflow:auto;max-height:50vh">${JSON.stringify(report, null, 2)}</pre>
     </main>
   `;
-  console.info('[p14b] jolt browser spike', report);
-  return report;
+
+  const serialized = `${JSON.stringify(report, null, 2)}\n`;
+  const filename = `p14b-jolt-${deviceSlug(report.userAgent)}-${report.capturedAt.slice(0, 10)}.json`;
+
+  root.querySelector('#p14b-download')?.addEventListener('click', () => {
+    const url = URL.createObjectURL(new Blob([serialized], { type: 'application/json' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  });
+
+  root.querySelector('#p14b-copy')?.addEventListener('click', () => {
+    void navigator.clipboard?.writeText(serialized);
+  });
 }

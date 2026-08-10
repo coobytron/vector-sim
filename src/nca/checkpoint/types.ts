@@ -21,6 +21,13 @@ export interface CheckpointManifest {
   readonly latent_channels: number;
   readonly sensor_channels: number;
   readonly hidden_width: number;
+  /**
+   * Residual rate applied as `latent + delta × update_rate`.
+   *
+   * Optional because checkpoints exported before this field existed omit it;
+   * those fall back to the container's `updateRate`.
+   */
+  readonly update_rate?: number;
   readonly dtype: string;
   readonly checkpoint_version: string;
   /** SHA-256 of the source `.pt` file. Provenance only — see the container. */
@@ -51,13 +58,10 @@ export interface BrowserCheckpointContainer {
   readonly container: typeof CONTAINER_TAG;
   readonly manifest: CheckpointManifest;
   /**
-   * Residual update rate applied as `latent + delta × updateRate`.
-   *
-   * P05a's manifest omits `update_rate` even though inference cannot be
-   * reproduced without it, so the container carries it explicitly. If P05b adds
-   * it to the manifest, the exporter should populate this from there.
+   * Residual update rate, as a fallback for checkpoints whose manifest predates
+   * `update_rate`. The manifest wins when it carries the field.
    */
-  readonly updateRate: number;
+  readonly updateRate?: number;
   readonly tensors: readonly CheckpointTensorEntry[];
   /** Little-endian float32 payload, base64 encoded. */
   readonly payloadBase64: string;

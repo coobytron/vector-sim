@@ -154,6 +154,9 @@ def save_checkpoint(
         "latent_channels": model.latent_channels,
         "sensor_channels": model.sensor_channels,
         "hidden_width": model.hidden_width,
+        # Residual rate applied as `latent + delta * update_rate`. Browser
+        # inference cannot be reproduced from a manifest without it (P06a).
+        "update_rate": model.update_rate,
         "dtype": "float32",
         "checkpoint_version": "p05a-smoke-v1",
         "sha256": checksum,
@@ -175,6 +178,7 @@ def save_checkpoint(
         f"- Latent channels: {model.latent_channels}\n"
         f"- Sensor channels: {model.sensor_channels}\n"
         f"- Hidden width: {model.hidden_width}\n"
+        f"- Update rate: {model.update_rate}\n"
         f"- Training seed: {config['seed']}\n"
         f"- Checkpoint SHA-256: `{checksum}`\n\n"
         "## Metrics\n\n"

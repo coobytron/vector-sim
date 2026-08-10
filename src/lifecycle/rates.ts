@@ -32,6 +32,10 @@ export function resolveLifecycleRates(overrides: Partial<LifecycleRates> = {}): 
   for (const key of Object.keys(RULES) as (keyof LifecycleRates)[]) {
     const value = merged[key];
     const rule = RULES[key];
+    // null is the documented "disabled" value for starvation only.
+    if (key === 'starvationSeconds' && value === null) {
+      continue;
+    }
     if (typeof value !== 'number' || !Number.isFinite(value)) {
       throw new LifecycleValidationError(`lifecycle rate ${key} must be a finite number (got ${String(value)})`);
     }
