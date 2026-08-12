@@ -1,0 +1,28 @@
+schema_version: 1
+checkpoint_version: p05b-candidate-v1
+seed: 240807
+phenotype: branching
+model:
+  latent_channels: 16
+  sensor_channels: 6
+  hidden_width: 64
+  update_rate: 0.25
+training:
+  device: cpu
+  batch_size: 4
+  nodes: 32
+  unroll_steps: 16
+  train_steps: 96
+  evaluation_steps: 512
+  learning_rate: 0.0005
+  optimizer: adam
+loss_weights:
+  morphology: 1.0
+  stability: 0.35
+  field_response: 0.8
+  recovery: 0.35
+  boundedness: 1.0
+fixtures:
+  lesion_fraction: 0.25
+  positive_field: 0.8
+  negative_field: -0.8

@@ -147,6 +147,15 @@ def save_checkpoint(
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(model.state_dict(), path)
     checksum = sha256(path.read_bytes()).hexdigest()
+    checkpoint_version = str(config.get("checkpoint_version", "p05a-smoke-v1"))
+    is_smoke = checkpoint_version.startswith("p05a-smoke")
+    limitations = [
+        "Exact PyTorch floating-point replay is only expected within the pinned environment.",
+    ]
+    if is_smoke:
+        limitations.insert(0, "Smoke-training scaffold only; phenotype quality is not production validated.")
+    else:
+        limitations.insert(0, "Candidate checkpoint; production phenotype quality still requires visual and physical-device validation.")
     manifest = {
         "schema_version": 1,
         "architecture": "vector_nca_mlp_v1",
@@ -154,18 +163,13 @@ def save_checkpoint(
         "latent_channels": model.latent_channels,
         "sensor_channels": model.sensor_channels,
         "hidden_width": model.hidden_width,
-        # Residual rate applied as `latent + delta * update_rate`. Browser
-        # inference cannot be reproduced from a manifest without it (P06a).
-        "update_rate": model.update_rate,
+        "update_rate": float(model.update_rate),
         "dtype": "float32",
-        "checkpoint_version": "p05a-smoke-v1",
+        "checkpoint_version": checkpoint_version,
         "sha256": checksum,
         "training_seed": int(config["seed"]),
         "metrics": metrics,
-        "limitations": [
-            "Smoke-training scaffold only; phenotype quality is not production validated.",
-            "Exact PyTorch floating-point replay is only expected within the pinned environment.",
-        ],
+        "limitations": limitations,
         "intended_use": "P05 training development and P06 browser-export contract validation",
     }
     manifest_path = path.with_suffix(".manifest.json")
@@ -179,10 +183,13 @@ def save_checkpoint(
         f"- Sensor channels: {model.sensor_channels}\n"
         f"- Hidden width: {model.hidden_width}\n"
         f"- Update rate: {model.update_rate}\n"
+        f"- Checkpoint version: `{checkpoint_version}`\n"
         f"- Training seed: {config['seed']}\n"
         f"- Checkpoint SHA-256: `{checksum}`\n\n"
         "## Metrics\n\n"
         + "\n".join(f"- {key}: {value:.8f}" for key, value in sorted(metrics.items()))
-        + "\n\n## Limitations\n\nThis checkpoint is a deterministic smoke-training artifact, not evidence of final phenotype quality or learned regeneration.\n"
+        + "\n\n## Limitations\n\n"
+        + "\n".join(f"- {item}" for item in limitations)
+        + "\n"
     )
     return manifest
