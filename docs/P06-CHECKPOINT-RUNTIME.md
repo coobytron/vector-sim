@@ -65,8 +65,8 @@ or reshapes a tensor. Branching, Ribbon, and Radial load through one code path.
 ### Where `updateRate` comes from
 
 `VectorNCA` applies `latent + delta × update_rate`, so inference cannot be
-reproduced without it. `save_checkpoint` now writes `update_rate` into the
-manifest, and **the manifest is authoritative**.
+reproduced without it. `save_checkpoint` writes `update_rate` into the manifest
+(landed by P05b in #41), and **the manifest is authoritative**.
 
 `container.updateRate` remains as a fallback for checkpoints exported before
 that field existed. When both are present they must agree — a container rate
