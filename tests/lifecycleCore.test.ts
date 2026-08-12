@@ -68,6 +68,13 @@ describe('rate table', () => {
     );
   });
 
+  it('treats a null starvation policy as disabled', () => {
+    expect(resolveLifecycleRates().starvationSeconds).toBeNull();
+    expect(resolveLifecycleRates({ starvationSeconds: null }).starvationSeconds).toBeNull();
+    expect(resolveLifecycleRates({ starvationSeconds: 12 }).starvationSeconds).toBe(12);
+    expect(() => resolveLifecycleRates({ starvationSeconds: -1 })).toThrow(LifecycleValidationError);
+  });
+
   it('rejects out-of-range, non-finite, and inconsistent rates', () => {
     expect(() => resolveLifecycleRates({ thrivingEnergy: 1.5 })).toThrow(LifecycleValidationError);
     expect(() => resolveLifecycleRates({ intakePerEnergyUnit: Number.NaN })).toThrow(
@@ -134,7 +141,7 @@ describe('feeding and damage', () => {
     lifecycle.step();
     expect(lifecycle.get('a')?.energy).toBe(1);
 
-    const dying = system({ starvationSeconds: 86_400 });
+    const dying = system();
     dying.spawn({ id: 'b', position: FAULT, seed: 1, energy: 1 });
     for (let index = 0; index < 200; index += 1) {
       dying.step();
@@ -179,7 +186,7 @@ describe('causal event log', () => {
   });
 
   it('logs spawn, transitions, and death in order', () => {
-    const lifecycle = system({ starvationSeconds: 86_400 });
+    const lifecycle = system();
     lifecycle.spawn({ id: 'a', position: FAULT, seed: 1, energy: 1 });
     for (let index = 0; index < 200; index += 1) {
       lifecycle.step();
@@ -242,7 +249,7 @@ describe('status transitions', () => {
   });
 
   it('marks an organism dying below the viability threshold', () => {
-    const lifecycle = system({ starvationSeconds: 86_400 });
+    const lifecycle = system();
     lifecycle.spawn({ id: 'a', position: FAULT, seed: 1, energy: 1, damage: 0.79 });
     lifecycle.step();
     expect(lifecycle.get('a')?.status).toBe('dying');
@@ -326,7 +333,21 @@ describe('lesions', () => {
 });
 
 describe('death and respawn', () => {
-  it('dies of starvation after the documented interval and stays dead', () => {
+  it('does not starve by default, because the contract has no starvation rule', () => {
+    const lifecycle = system();
+    lifecycle.spawn({ id: 'a', position: NEUTRAL, seed: 1, energy: 0 });
+    for (let index = 0; index < 600; index += 1) {
+      lifecycle.step();
+    }
+    const organism = lifecycle.get('a');
+    expect(organism?.energy).toBe(0);
+    expect(organism?.starvedSeconds).toBeGreaterThan(19);
+    expect(organism?.status).toBe('searching');
+    expect(organism?.deathCause).toBeNull();
+    expect(lifecycle.livingCount()).toBe(1);
+  });
+
+  it('starves when an authored policy opts in', () => {
     const lifecycle = system({ starvationSeconds: 1 });
     lifecycle.spawn({ id: 'a', position: NEUTRAL, seed: 1, energy: 0 });
     for (let index = 0; index < 60; index += 1) {

@@ -131,8 +131,17 @@ export interface LifecycleRates {
   readonly thrivingEnergy: number;
   /** Energy at or above this marks the organism resting. */
   readonly restingEnergy: number;
-  /** Seconds at zero energy before starvation death. */
-  readonly starvationSeconds: number;
+  /**
+   * Seconds at zero energy before starvation death, or `null` to disable it.
+   *
+   * Disabled by default, because `docs/SIMULATION-CONTRACT.md` has no
+   * starvation rule: zero energy only blocks birth and repair, and death comes
+   * from viability ("all core cells inactive, or mean core health remains zero
+   * for 30 ticks"). Starvation is therefore an optional authored policy rather
+   * than a contract behaviour, and inventing a default number would have
+   * quietly added a death mode the contract does not describe.
+   */
+  readonly starvationSeconds: number | null;
   /** Hard cap on simultaneously live organisms. */
   readonly maxPopulation: number;
 }
@@ -148,7 +157,7 @@ export const DEFAULT_LIFECYCLE_RATES: LifecycleRates = {
   dyingViability: 0.2,
   thrivingEnergy: 0.7,
   restingEnergy: 0.45,
-  starvationSeconds: 8,
+  starvationSeconds: null,
   maxPopulation: 8,
 };
 

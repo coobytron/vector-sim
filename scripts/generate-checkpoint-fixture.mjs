@@ -98,6 +98,7 @@ const container = {
     sensor_channels: SENSOR_CHANNELS,
     sha256: payloadSha256,
     training_seed: TRAINING_SEED,
+    update_rate: UPDATE_RATE,
   },
   payloadBase64,
   payloadSha256,

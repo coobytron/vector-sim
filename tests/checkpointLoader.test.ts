@@ -224,9 +224,37 @@ describe('browser container loading', () => {
     );
   });
 
-  it('rejects a missing update rate', () => {
+  it('takes update_rate from the manifest when present', () => {
     const variant = clone();
+    variant.manifest.update_rate = 0.25;
+    delete variant.updateRate;
+    expect(loadBrowserCheckpoint(variant).updateRate).toBe(0.25);
+  });
+
+  it('falls back to the container for manifests predating update_rate', () => {
+    const variant = clone();
+    delete variant.manifest.update_rate;
+    variant.updateRate = 0.75;
+    expect(loadBrowserCheckpoint(variant).updateRate).toBe(0.75);
+  });
+
+  it('rejects a container rate that contradicts the manifest', () => {
+    const variant = clone();
+    variant.manifest.update_rate = 0.5;
+    variant.updateRate = 0.9;
+    expectCode(() => loadBrowserCheckpoint(variant), 'container');
+  });
+
+  it('rejects a missing update rate on both sides', () => {
+    const variant = clone();
+    delete variant.manifest.update_rate;
     delete variant.updateRate;
     expectCode(() => loadBrowserCheckpoint(variant), 'container');
+  });
+
+  it('rejects a non-finite manifest update_rate', () => {
+    const variant = clone();
+    variant.manifest.update_rate = 'fast';
+    expectCode(() => loadBrowserCheckpoint(variant), 'manifest');
   });
 });
