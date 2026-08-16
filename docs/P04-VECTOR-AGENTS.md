@@ -119,6 +119,15 @@ State override is presentation-only and excluded from the simulation hash. Run
 `npm run capture:organisms` to regenerate the two committed 1536×1024 CPU vector
 references and their SHA-256 manifest.
 
+The manifest records two digests per reference. `sources` hashes the generated
+SVG, which is pure string output and therefore reproduces on any machine.
+`files` hashes the PNG, which does **not**: rasterizing the label text resolves
+`font-family: Helvetica, Arial, sans-serif` against host-installed fonts, so the
+bytes differ between machines even when the drawing is identical. When comparing
+two hosts, regenerate and diff the manifest — an unchanged `sources` entry beside
+a changed `files` entry is font fallback, not a drawing change. The organism
+drawing itself is unaffected; only text rows differ.
+
 ## Performance evidence
 
 The 2026-08-07 Node reference run includes the new graph adjacency, visual

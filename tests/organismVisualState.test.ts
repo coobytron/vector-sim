@@ -65,4 +65,25 @@ describe('organism visual state decoder', () => {
     expect(regeneration.state).toBe('regenerating');
     expect(regeneration.emissionStrength).toBeGreaterThan(0);
   });
+
+  it('reads rising health as repair while the cell is still inside the damaged band', () => {
+    // Regression: `health < 0.72` used to be tested before rising health, so a
+    // cell healing from 0.3 upward stayed coral damage and the repair cue was
+    // unreachable exactly where repair is most legible.
+    for (const health of [0.25, 0.4, 0.55, 0.71]) {
+      const healing = decode({ health, previousHealth: health - 0.05 });
+      expect(healing.state).toBe('regenerating');
+      expect(healing.wavelengthNm).toBeLessThan(500);
+    }
+  });
+
+  it('keeps dying and death terminal even while health ticks upward', () => {
+    expect(decode({ health: 0.19, previousHealth: 0.1 }).state).toBe('dying');
+    expect(decode({ health: 0.01, previousHealth: 0 }).state).toBe('death');
+  });
+
+  it('still reads a falling cell inside the damaged band as damage', () => {
+    const hurt = decode({ health: 0.5, previousHealth: 0.6 });
+    expect(hurt.state).toBe('damaged');
+  });
 });

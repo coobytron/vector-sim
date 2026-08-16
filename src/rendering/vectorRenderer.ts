@@ -13,7 +13,11 @@ import {
   type Rgb,
   type SpectralColorSample,
 } from '../spectral/color';
-import type { SpectralLookProfile } from '../spectral/looks';
+import {
+  GHOST_MEMBRANE_OPACITY,
+  GHOST_PRIMARY_OPACITY,
+  type SpectralLookProfile,
+} from '../spectral/looks';
 import { HomeSpectralEmitters } from './homeSpectralEmitters';
 import { SpectralCalibrationScene } from './spectralCalibrationScene';
 import { SpectralPostProcessor } from './spectralPostProcessor';
@@ -438,15 +442,18 @@ export class VectorRenderer {
   private applyOrganismLook(look: SpectralLookProfile): void {
     const technical = look.name === 'technical';
     const ghost = look.name === 'ghost';
+    // Ghost Volume keeps primary nodes and active edges at >= 0.75 so the look
+    // stays a translucent section rather than additive fog; only membranes and
+    // ribbons drop into the 0.12-0.35 band. See docs/ART-DIRECTION.md.
     this.nodeMaterial.wireframe = technical;
     this.nodeMaterial.transparent = ghost;
-    this.nodeMaterial.opacity = ghost ? 0.34 : technical ? 0.86 : 1;
+    this.nodeMaterial.opacity = ghost ? GHOST_PRIMARY_OPACITY : technical ? 0.86 : 1;
     this.nodeMaterial.depthWrite = !ghost;
     this.nodeMaterial.roughness = technical ? 0.72 : ghost ? 0.24 : 0.48;
     this.nodeMaterial.needsUpdate = true;
 
     this.edgeMaterial.color.set(technical ? 0x333339 : ghost ? 0x767680 : 0x54545a);
-    this.edgeMaterial.opacity = technical ? 0.9 : ghost ? 0.38 : 0.72;
+    this.edgeMaterial.opacity = technical ? 0.9 : ghost ? GHOST_PRIMARY_OPACITY : 0.72;
     this.edgeMaterial.needsUpdate = true;
 
     this.ribbonMaterial.wireframe = technical;
@@ -457,7 +464,7 @@ export class VectorRenderer {
     this.ribbonMaterial.needsUpdate = true;
 
     this.faceMaterial.wireframe = technical;
-    this.faceMaterial.opacity = ghost ? 0.08 : technical ? 0.16 : 0.26;
+    this.faceMaterial.opacity = ghost ? GHOST_MEMBRANE_OPACITY : technical ? 0.16 : 0.26;
     this.faceMaterial.depthWrite = false;
     this.faceMaterial.roughness = technical ? 0.9 : ghost ? 0.3 : 0.74;
     this.faceMaterial.needsUpdate = true;

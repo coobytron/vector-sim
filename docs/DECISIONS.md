@@ -25,6 +25,9 @@ implementation may silently decide an open item by accident.
 | D018 | Open — accessibility review | Decide reduced-motion defaults and whether roll can ever auto-enable. | Creative owner | Must be resolved before Home visual approval. |
 | D019 | Proposed — P04 implementation | Ship Branching, Ribbon, and Radial as one related vector-organism family using stable topology descriptors and one NCA-to-geometry decode. Preserve node, edge, ribbon, and low-poly facet buffers across lifecycle changes and rank detail for Overview, Mid, and Macro LOD. | Creative owner + implementation owner | Implemented in the P04 review branch. Acceptance requires judging the deterministic morphology and lifecycle PNGs plus the live organism lab; implementation tests and provisional CPU budgets already pass. |
 
+| D020 | Proposed — P08b | Derive renderer-facing presentation from lifecycle state and events in one pure mapping, with an `emissionCeiling` that holds unearned recovery to a restrained cue and an event phase anchored to `statusSinceTick`. | Implementation owner | Keeps learned regeneration gated on #31/#42 while making feeding, damage, dying, and death deterministically visible today. |
+| D021 | Proposed — P04c | Treat the generated SVG digest as the portable capture baseline and the PNG digest as host-specific, because rasterized label text resolves fonts against the host. | Implementation owner + creative owner | The organism drawing is byte-identical across hosts; only text rows differ. Embedding a font would make the PNG portable too and remains open. |
+
 ## Change rule
 
 An accepted decision changes only through a documented amendment that names the

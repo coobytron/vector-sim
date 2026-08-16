@@ -13,6 +13,16 @@ export interface SpectralLookProfile {
   outputSaturation: number;
 }
 
+/**
+ * Ghost Volume opacity contract from `docs/ART-DIRECTION.md`: primary nodes and
+ * active edges stay at or above 0.75 so the look reads as a translucent section
+ * with front-to-back legibility, while organism membranes sit inside 0.12-0.35.
+ * Renderer and deterministic capture harness share these so the two cannot
+ * drift apart.
+ */
+export const GHOST_PRIMARY_OPACITY = 0.78;
+export const GHOST_MEMBRANE_OPACITY = 0.18;
+
 export const SPECTRAL_LOOKS: Record<SpectralLookName, SpectralLookProfile> = {
   porcelain: {
     name: 'porcelain',

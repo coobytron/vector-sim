@@ -8,12 +8,23 @@ import {
   type OrganismVisualState,
   type VisualDecodeInput,
 } from '../organisms/types';
+import {
+  applyPresentationToDecodeInput,
+  type OrganismPresentationState,
+} from '../organisms/presentation';
 import { createDecodedCellVisual, decodeCellVisual } from '../organisms/visualState';
 import type { SimulationSnapshot } from '../simulation/types';
 
 export interface VectorPackOptions {
   lod?: MorphologyLod;
   stateOverride?: OrganismVisualState;
+  /**
+   * Lifecycle-derived presentation, keyed by organism index (P08b). When an
+   * organism has an entry, its lifecycle state drives the decode instead of the
+   * raw per-node health/energy heuristic. An explicit `stateOverride` — the
+   * deterministic capture route — still wins, so captures stay pinned.
+   */
+  presentations?: ReadonlyMap<number, OrganismPresentationState>;
 }
 
 export interface VectorBuffers {
@@ -119,6 +130,11 @@ export class VectorBufferPacker {
       this.decodeInput.role = role;
       this.decodeInput.phase = snapshot.tick / 90 - node / Math.max(1, snapshot.active.length);
       this.decodeInput.stateOverride = options.stateOverride;
+      this.decodeInput.emissionCeiling = undefined;
+      const presentation = options.presentations?.get(organismIndex);
+      if (presentation !== undefined && options.stateOverride === undefined) {
+        applyPresentationToDecodeInput(presentation, this.decodeInput);
+      }
       decodeCellVisual(this.decodeInput, this.decoded);
 
       const centerX = descriptor?.center[0] ?? 0;

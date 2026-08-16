@@ -19,8 +19,12 @@ function resolveState(input: VisualDecodeInput): OrganismVisualState {
   if (input.stateOverride) return input.stateOverride;
   if (input.health <= 0.015) return 'death';
   if (input.health < 0.2) return 'dying';
-  if (input.health < 0.72) return 'damaged';
+  // Rising health outranks the damaged band. Repair is legible only while the
+  // cell is still hurt, so testing `health < 0.72` first made regeneration
+  // unreachable below that threshold and painted healing tissue as damage.
+  // Death and dying stay terminal and keep their priority above this.
   if (input.health > input.previousHealth + 0.0004) return 'regenerating';
+  if (input.health < 0.72) return 'damaged';
   if (input.energy > 0.72) return 'feeding';
   if (input.energy < 0.25) return 'starving';
   return 'dormant';
@@ -136,7 +140,8 @@ export function decodeCellVisual(
   );
   output.baseTone = clamp01(0.72 + integrity * 0.22 + activity * 0.06);
   output.wavelengthNm = semantic?.wavelengthNm ?? LIFE_WAVELENGTH_NM;
-  output.emissionStrength = clamp01(stateStrength * eventStrength);
+  const ceiling = input.emissionCeiling === undefined ? 1 : clamp01(input.emissionCeiling);
+  output.emissionStrength = clamp01(stateStrength * eventStrength * ceiling);
   return output;
 }
 
