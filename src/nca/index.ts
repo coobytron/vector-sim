@@ -1,10 +1,8 @@
 /**
- * Browser-side NCA checkpoint contract and deterministic CPU reference (P06a).
+ * Browser-side NCA checkpoint contract and deterministic CPU/GPU runtimes.
  *
- * Loads P05a-format checkpoints, validates them before execution, and runs them
- * on the CPU with seed/reset/pause/single-step/lesion controls. Pure typed-array
- * arithmetic — no Three.js, DOM, GPU, or network dependency. The WebGL2 path
- * follows once P05b produces real checkpoint candidates.
+ * Loads P05-format checkpoints, validates them before execution, provides the
+ * deterministic CPU reference kernel, and exposes the WebGL2 execution path.
  */
 export {
   decodeBase64,
@@ -33,3 +31,5 @@ export type {
 export { ReferenceRuntimeError, createReferenceRuntime } from './reference/runtime';
 export type { LesionRequest, ReferenceRuntime, ReferenceRuntimeOptions } from './reference/runtime';
 export { VectorNcaReferenceKernel } from './reference/vectorNcaKernel';
+export { WebGlNcaRuntime } from './webgl2Runtime';
+export type { WebGlNcaRuntimeOptions, WebGlNcaTelemetry } from './webgl2Runtime';
