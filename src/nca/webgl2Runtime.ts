@@ -12,6 +12,18 @@ export interface WebGlNcaTelemetry {
   readonly maxStepMs: number;
 }
 
+function isWebGl2Context(value: unknown): value is WebGL2RenderingContext {
+  if (typeof value !== 'object' || value === null) return false;
+  const gl = value as Record<string, unknown>;
+  return (
+    typeof gl.createTexture === 'function' &&
+    typeof gl.createShader === 'function' &&
+    typeof gl.createProgram === 'function' &&
+    typeof gl.createFramebuffer === 'function' &&
+    typeof gl.createVertexArray === 'function'
+  );
+}
+
 function compileShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type);
   if (!shader) throw new Error('webgl2 nca: failed to create shader');
@@ -69,13 +81,13 @@ export class WebGlNcaRuntime {
   private readonly framebuffers: [WebGLFramebuffer, WebGLFramebuffer];
   private readonly program: WebGLProgram;
   private readonly vao: WebGLVertexArrayObject;
-  private activeIndex = 0;
+  private activeIndex: 0 | 1 = 0;
   private paused = false;
   private telemetryState: WebGlNcaTelemetry = { steps: 0, lastStepMs: 0, maxStepMs: 0 };
 
   constructor(options: WebGlNcaRuntimeOptions) {
     const { gl, checkpoint, nodeCount } = options;
-    if (!(gl instanceof WebGL2RenderingContext)) throw new Error('webgl2 nca: WebGL2 context required');
+    if (!isWebGl2Context(gl)) throw new Error('webgl2 nca: WebGL2 context required');
     if (!Number.isInteger(nodeCount) || nodeCount <= 0) throw new Error('webgl2 nca: nodeCount must be positive');
     if (checkpoint.manifest.dtype !== 'float32') throw new Error(`webgl2 nca: unsupported dtype ${checkpoint.manifest.dtype}`);
 
