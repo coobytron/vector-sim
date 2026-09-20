@@ -38,6 +38,7 @@ describe('VectorBufferPacker', () => {
     expect(buffers.nodePositions.length).toBe(simulation.nodeCount * 3);
     expect(buffers.nodeScales.length).toBe(simulation.nodeCount);
     expect(buffers.nodeOpacities.length).toBe(simulation.nodeCount);
+    expect(buffers.organismTrailPersistence.length).toBe(simulation.snapshot.topology.organisms.length);
     expect(buffers.edgePositions.length).toBe(simulation.snapshot.edges.length * 3);
     expect(buffers.ribbonPositions.length).toBe(buffers.ribbonCount * 12);
     expect(buffers.facePositions.length).toBe(buffers.faceCount * 9);
@@ -86,6 +87,7 @@ describe('VectorBufferPacker', () => {
     expect(driven.length).toBeGreaterThan(0);
     expect(untouched.length).toBeGreaterThan(0);
     expect(driven.every((state) => state === ORGANISM_STATE_CODE.death)).toBe(true);
+    expect(buffers.organismTrailPersistence[0]).toBe(0);
     const drivenOpacities = Array.from(buffers.nodeOpacities).filter(
       (_, node) => (organismOf[node] ?? 0) === 0,
     );
@@ -104,6 +106,7 @@ describe('VectorBufferPacker', () => {
       presentations,
     });
     expect(buffers.nodeStates.every((state) => state === ORGANISM_STATE_CODE.feeding)).toBe(true);
+    expect(Math.min(...buffers.organismTrailPersistence)).toBeGreaterThan(0.7);
     expect(Math.max(...buffers.nodeOpacities)).toBeGreaterThan(0.2);
   });
 
