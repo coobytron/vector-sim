@@ -59,6 +59,8 @@ class FakeGl {
 
 const checkpoint = {
   manifest: { dtype: 'float32' },
+  latentChannels: 4,
+  sensorChannels: 0,
 } as never;
 
 describe('WebGlNcaRuntime contract', () => {
@@ -66,15 +68,21 @@ describe('WebGlNcaRuntime contract', () => {
     expect(() => new WebGlNcaRuntime({ gl: new FakeGl() as never, checkpoint, nodeCount: 0 })).toThrow(/nodeCount/);
   });
 
-  it('supports pause, forced single-step, seed, lesion, and telemetry', () => {
+  it('rejects seeds that do not cover every latent channel', () => {
     const runtime = new WebGlNcaRuntime({ gl: new FakeGl() as never, checkpoint, nodeCount: 4 });
-    runtime.seed(new Float32Array([1, 2, 3, 4]));
+    expect(() => runtime.seed(new Float32Array(4))).toThrow(/latentChannels/);
+    runtime.dispose();
+  });
+
+  it('supports pause, forced single-step, full-state seed, lesion, and telemetry', () => {
+    const runtime = new WebGlNcaRuntime({ gl: new FakeGl() as never, checkpoint, nodeCount: 4 });
+    runtime.seed(Float32Array.from({ length: 16 }, (_unused, index) => index + 1));
     runtime.setPaused(true);
     expect(runtime.step()).toBe(false);
     runtime.singleStep();
     expect(runtime.telemetry.steps).toBe(1);
     runtime.lesion([0, 3, -1, 99]);
-    runtime.reset(new Float32Array([0, 0, 0, 0]));
+    runtime.reset(new Float32Array(16));
     expect(runtime.telemetry.steps).toBe(0);
     runtime.dispose();
   });
