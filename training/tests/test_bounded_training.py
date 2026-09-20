@@ -35,6 +35,12 @@ def test_all_phenotypes_emit_evaluation_reports(tmp_path):
         assert report["phenotype"] == phenotype
         assert report["evaluation_steps"] == 8
         assert report["metrics"]["nan_rate"] == 0.0
+        assert report["evaluation_protocol"] == "controlled-field-lesion-v2"
+        assert report["metrics"]["positive_field_response"] >= 0.0
+        assert report["metrics"]["negative_field_response"] >= 0.0
+        assert report["metrics"]["damage_recovery_error"] >= 0.0
         assert (tmp_path / phenotype / f"{phenotype}.evaluation.json").exists()
+        assert (tmp_path / phenotype / f"{phenotype}.preview.json").exists()
+        assert (tmp_path / phenotype / f"{phenotype}.preview.svg").exists()
         assert (tmp_path / phenotype / f"{phenotype}.manifest.json").exists()
         assert (tmp_path / phenotype / f"{phenotype}.model-card.md").exists()
