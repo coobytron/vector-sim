@@ -10,6 +10,7 @@ import {
 } from '../organisms/types';
 import {
   applyPresentationToDecodeInput,
+  trailPersistenceForVisualState,
   type OrganismPresentationState,
 } from '../organisms/presentation';
 import { createDecodedCellVisual, decodeCellVisual } from '../organisms/visualState';
@@ -35,6 +36,7 @@ export interface VectorBuffers {
   nodeWavelengths: Float32Array;
   nodeEmissionStrengths: Float32Array;
   nodeStates: Uint8Array;
+  organismTrailPersistence: Float32Array;
   edgePositions: Float32Array;
   edgeActivity: Float32Array;
   ribbonPositions: Float32Array;
@@ -58,6 +60,8 @@ export class VectorBufferPacker {
   private readonly interpolation: Float32Array;
   private readonly nodeConnectivity: Float32Array;
   private readonly nodeRibbonWeights: Float32Array;
+  private readonly organismTrailSums: Float32Array;
+  private readonly organismTrailCounts: Uint16Array;
   private readonly decodeInput: VisualDecodeInput = {
     energy: 0,
     health: 1,
@@ -77,6 +81,8 @@ export class VectorBufferPacker {
     this.interpolation = new Float32Array(snapshot.positions.length);
     this.nodeConnectivity = new Float32Array(snapshot.active.length);
     this.nodeRibbonWeights = new Float32Array(snapshot.active.length);
+    this.organismTrailSums = new Float32Array(snapshot.topology.organisms.length);
+    this.organismTrailCounts = new Uint16Array(snapshot.topology.organisms.length);
     this.buffers = {
       nodePositions: new Float32Array(snapshot.positions.length),
       nodeScales: new Float32Array(snapshot.active.length),
@@ -85,6 +91,7 @@ export class VectorBufferPacker {
       nodeWavelengths: new Float32Array(snapshot.active.length),
       nodeEmissionStrengths: new Float32Array(snapshot.active.length),
       nodeStates: new Uint8Array(snapshot.active.length),
+      organismTrailPersistence: new Float32Array(snapshot.topology.organisms.length),
       edgePositions: new Float32Array(snapshot.edges.length * 3),
       edgeActivity: new Float32Array(edgeCount),
       ribbonPositions: new Float32Array(edgeCount * 4 * 3),
@@ -105,6 +112,8 @@ export class VectorBufferPacker {
     const lod = options.lod ?? 'macro';
     const threshold = lodImportanceThreshold(lod);
     this.buffers.lod = lod;
+    this.organismTrailSums.fill(0);
+    this.organismTrailCounts.fill(0);
     for (let index = 0; index < this.interpolation.length; index += 1) {
       const previous = snapshot.previousPositions[index] ?? 0;
       this.interpolation[index] = previous + ((snapshot.positions[index] ?? 0) - previous) * amount;
@@ -167,6 +176,22 @@ export class VectorBufferPacker {
       this.buffers.nodeStates[node] = ORGANISM_STATE_CODE[this.decoded.state];
       this.nodeConnectivity[node] = visible ? this.decoded.connectivity : 0;
       this.nodeRibbonWeights[node] = visible ? this.decoded.ribbonWeight : 0;
+      if (visible) {
+        const trailPersistence =
+          presentation !== undefined && options.stateOverride === undefined
+            ? presentation.trailPersistence
+            : trailPersistenceForVisualState(this.decoded.state, this.decodeInput.health);
+        this.organismTrailSums[organismIndex] =
+          (this.organismTrailSums[organismIndex] ?? 0) + trailPersistence;
+        this.organismTrailCounts[organismIndex] =
+          (this.organismTrailCounts[organismIndex] ?? 0) + 1;
+      }
+    }
+
+    for (let organism = 0; organism < this.buffers.organismTrailPersistence.length; organism += 1) {
+      const count = this.organismTrailCounts[organism] ?? 0;
+      this.buffers.organismTrailPersistence[organism] =
+        count === 0 ? 0 : (this.organismTrailSums[organism] ?? 0) / count;
     }
 
     for (let pairOffset = 0; pairOffset < snapshot.edges.length; pairOffset += 2) {
