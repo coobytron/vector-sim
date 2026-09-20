@@ -21,6 +21,7 @@ import {
 import { HomeSpectralEmitters } from './homeSpectralEmitters';
 import { SpectralCalibrationScene } from './spectralCalibrationScene';
 import { SpectralPostProcessor } from './spectralPostProcessor';
+import { topologyOverlayVisible } from './presentationPolicy';
 import { VectorBufferPacker } from './vectorBufferPacker';
 
 export interface RenderMetrics {
@@ -54,6 +55,7 @@ export class VectorRenderer {
   private readonly emissionNodes: THREE.InstancedMesh;
   private readonly edgeGeometry: THREE.BufferGeometry;
   private readonly edgeMaterial: THREE.LineBasicMaterial;
+  private readonly topologyLines: THREE.LineSegments;
   private readonly emissionEdgeGeometry: THREE.BufferGeometry;
   private readonly emissionEdgeColors: Float32Array;
   private readonly nodeEmissionColors: Float32Array;
@@ -156,6 +158,27 @@ export class VectorRenderer {
       roughness: 0.48,
       metalness: 0.02,
     });
+    this.nodeMaterial.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nattribute float instanceOpacity;\nvarying float vInstanceOpacity;',
+        )
+        .replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nvInstanceOpacity = instanceOpacity;',
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nvarying float vInstanceOpacity;',
+        )
+        .replace(
+          'vec4 diffuseColor = vec4( diffuse, opacity );',
+          'vec4 diffuseColor = vec4( diffuse, opacity * vInstanceOpacity );',
+        );
+    };
+    this.nodeMaterial.customProgramCacheKey = () => 'vector-node-instance-opacity-v1';
     this.nodes = new THREE.InstancedMesh(nodeGeometry, this.nodeMaterial, snapshot.active.length);
     this.nodes.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.nodes.frustumCulled = false;
@@ -184,6 +207,12 @@ export class VectorRenderer {
     this.nodeEmissionColors = new Float32Array(snapshot.active.length * 3);
     this.nodeEmissionStrengths = new Float32Array(snapshot.active.length);
     this.packer = new VectorBufferPacker(snapshot);
+    this.nodes.geometry.setAttribute(
+      'instanceOpacity',
+      new THREE.InstancedBufferAttribute(this.packer.buffers.nodeOpacities, 1).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
     this.edgeGeometry = new THREE.BufferGeometry();
     this.edgeGeometry.setAttribute(
       'position',
@@ -194,10 +223,11 @@ export class VectorRenderer {
       transparent: true,
       opacity: 0.72,
     });
-    const lines = new THREE.LineSegments(this.edgeGeometry, this.edgeMaterial);
-    lines.frustumCulled = false;
-    lines.visible = this.mode !== 'calibration';
-    this.scene.add(lines);
+    this.topologyLines = new THREE.LineSegments(this.edgeGeometry, this.edgeMaterial);
+    this.topologyLines.frustumCulled = false;
+    this.topologyLines.visible =
+      this.mode !== 'calibration' && topologyOverlayVisible(options.look.name);
+    this.scene.add(this.topologyLines);
 
     this.emissionEdgeColors = new Float32Array(this.packer.buffers.edgePositions.length);
     this.emissionEdgeGeometry = new THREE.BufferGeometry();
@@ -279,7 +309,8 @@ export class VectorRenderer {
       snapshot.topology.organisms.length,
     );
     this.forwardMarkers.frustumCulled = false;
-    this.forwardMarkers.visible = this.mode !== 'calibration';
+    this.forwardMarkers.visible =
+      this.mode !== 'calibration' && topologyOverlayVisible(options.look.name);
     const up = new THREE.Vector3(0, 1, 0);
     const forward = new THREE.Vector3();
     for (let organism = 0; organism < snapshot.topology.organisms.length; organism += 1) {
@@ -347,6 +378,7 @@ export class VectorRenderer {
     }
     this.nodes.instanceMatrix.needsUpdate = true;
     if (this.nodes.instanceColor) this.nodes.instanceColor.needsUpdate = true;
+    this.nodes.geometry.getAttribute('instanceOpacity').needsUpdate = true;
     this.emissionNodes.instanceMatrix.needsUpdate = true;
     if (this.emissionNodes.instanceColor) this.emissionNodes.instanceColor.needsUpdate = true;
 
@@ -442,11 +474,15 @@ export class VectorRenderer {
   private applyOrganismLook(look: SpectralLookProfile): void {
     const technical = look.name === 'technical';
     const ghost = look.name === 'ghost';
+    const showTopology = this.mode !== 'calibration' && topologyOverlayVisible(look.name);
+    this.topologyLines.visible = showTopology;
+    this.forwardMarkers.visible = showTopology;
     // Ghost Volume keeps primary nodes and active edges at >= 0.75 so the look
     // stays a translucent section rather than additive fog; only membranes and
     // ribbons drop into the 0.12-0.35 band. See docs/ART-DIRECTION.md.
     this.nodeMaterial.wireframe = technical;
     this.nodeMaterial.transparent = ghost;
+    this.nodeMaterial.alphaHash = !ghost;
     this.nodeMaterial.opacity = ghost ? GHOST_PRIMARY_OPACITY : technical ? 0.86 : 1;
     this.nodeMaterial.depthWrite = !ghost;
     this.nodeMaterial.roughness = technical ? 0.72 : ghost ? 0.24 : 0.48;

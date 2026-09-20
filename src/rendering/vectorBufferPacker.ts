@@ -30,6 +30,7 @@ export interface VectorPackOptions {
 export interface VectorBuffers {
   nodePositions: Float32Array;
   nodeScales: Float32Array;
+  nodeOpacities: Float32Array;
   nodeBaseTones: Float32Array;
   nodeWavelengths: Float32Array;
   nodeEmissionStrengths: Float32Array;
@@ -79,6 +80,7 @@ export class VectorBufferPacker {
     this.buffers = {
       nodePositions: new Float32Array(snapshot.positions.length),
       nodeScales: new Float32Array(snapshot.active.length),
+      nodeOpacities: new Float32Array(snapshot.active.length),
       nodeBaseTones: new Float32Array(snapshot.active.length),
       nodeWavelengths: new Float32Array(snapshot.active.length),
       nodeEmissionStrengths: new Float32Array(snapshot.active.length),
@@ -154,6 +156,11 @@ export class VectorBufferPacker {
       const importance = snapshot.topology.nodeImportance[node] ?? (role === NODE_ROLE.structure ? 1 : 2);
       const visible = importance >= threshold && snapshot.active[node] === 1;
       this.buffers.nodeScales[node] = visible ? this.decoded.thickness : 0;
+      const presentationOpacity =
+        presentation !== undefined && options.stateOverride === undefined ? presentation.opacity : 1;
+      this.buffers.nodeOpacities[node] = visible
+        ? this.decoded.opacity * presentationOpacity
+        : 0;
       this.buffers.nodeBaseTones[node] = this.decoded.baseTone;
       this.buffers.nodeWavelengths[node] = this.decoded.wavelengthNm;
       this.buffers.nodeEmissionStrengths[node] = visible ? this.decoded.emissionStrength : 0;
