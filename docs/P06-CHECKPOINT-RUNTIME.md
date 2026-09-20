@@ -159,3 +159,24 @@ npm run qa
   the GPU backend.
 - `signature()` uses the existing 32-bit FNV-1a `hashState`. Fine for fixture
   identity; a replay-grade hash would want more bits.
+
+
+## P06b validation-only CPU↔GPU parity
+
+The WebGL2 runtime keeps synchronous state readback out of normal execution. For
+explicit validation, `readStateForValidation()` reads the current RGBA32F state
+atlas and reconstructs the full `nodes × latentChannels` array.
+
+`runWebGlNcaParity()` executes the same initial latent state and fixed sensors
+through the CPU oracle and WebGL2 runtime, then reports:
+
+- maximum, mean, and RMS absolute error;
+- count of values outside a caller-supplied tolerance;
+- quantized CPU/GPU tolerance signatures;
+- finite/bounded status and maximum absolute state;
+- WebGL2 step timing telemetry.
+
+A browser/device acceptance run should use the committed checkpoint fixture,
+the same seed-derived initial state used by `createReferenceRuntime()`, and
+explicitly record the tolerance and device. The 1,000-step gate is a validation
+workflow; it must not add readback to the normal render/update loop.
