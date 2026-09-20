@@ -37,6 +37,7 @@ describe('VectorBufferPacker', () => {
     const buffers = packer.update(simulation.snapshot, 0.5);
     expect(buffers.nodePositions.length).toBe(simulation.nodeCount * 3);
     expect(buffers.nodeScales.length).toBe(simulation.nodeCount);
+    expect(buffers.nodeOpacities.length).toBe(simulation.nodeCount);
     expect(buffers.edgePositions.length).toBe(simulation.snapshot.edges.length * 3);
     expect(buffers.ribbonPositions.length).toBe(buffers.ribbonCount * 12);
     expect(buffers.facePositions.length).toBe(buffers.faceCount * 9);
@@ -85,6 +86,10 @@ describe('VectorBufferPacker', () => {
     expect(driven.length).toBeGreaterThan(0);
     expect(untouched.length).toBeGreaterThan(0);
     expect(driven.every((state) => state === ORGANISM_STATE_CODE.death)).toBe(true);
+    const drivenOpacities = Array.from(buffers.nodeOpacities).filter(
+      (_, node) => (organismOf[node] ?? 0) === 0,
+    );
+    expect(Math.max(...drivenOpacities)).toBeLessThanOrEqual(0.2);
     expect(untouched.some((state) => state !== ORGANISM_STATE_CODE.death)).toBe(true);
   });
 
@@ -99,6 +104,7 @@ describe('VectorBufferPacker', () => {
       presentations,
     });
     expect(buffers.nodeStates.every((state) => state === ORGANISM_STATE_CODE.feeding)).toBe(true);
+    expect(Math.max(...buffers.nodeOpacities)).toBeGreaterThan(0.2);
   });
 
   it('collapses detail for overview LOD without reallocating geometry', () => {
