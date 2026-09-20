@@ -207,7 +207,7 @@ function eventWindowTicks(state: OrganismVisualState): number {
  * history behind a thriving organism, probing arcs while searching, fragmented
  * history under damage, and evaporation at death.
  */
-function trailPersistenceFor(state: OrganismVisualState, viability: number): number {
+export function trailPersistenceForVisualState(state: OrganismVisualState, viability: number): number {
   switch (state) {
     case 'feeding':
       return clamp01(0.72 + viability * 0.24);
@@ -326,7 +326,7 @@ export function deriveOrganismPresentation(
     thicknessScale: clamp01(0.34 + viability * 0.46 + energy * 0.2),
     opacity: visualState === 'death' ? clamp01(0.3 * (1 - eventPhase)) : clamp01(0.55 + viability * 0.45),
     continuity,
-    trailPersistence: trailPersistenceFor(visualState, viability),
+    trailPersistence: trailPersistenceForVisualState(visualState, viability),
     repairPending,
     repairBlockedBy,
     feedFocus,
