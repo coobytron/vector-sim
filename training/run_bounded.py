@@ -11,12 +11,12 @@ from vector_nca.core import (
     PHENOTYPES,
     VectorNCA,
     build_fixture,
-    evaluate_state,
     load_config,
     phenotype_loss,
     save_checkpoint,
     seed_everything,
 )
+from vector_nca.evaluation import evaluate_candidate, preview_sequence, write_preview_svg
 
 
 def train_one(config: dict, phenotype_name: str, out_dir: Path) -> dict:
@@ -64,14 +64,32 @@ def train_one(config: dict, phenotype_name: str, out_dir: Path) -> dict:
         optimizer.step()
 
     horizon = int(config["training"].get("evaluation_steps", max(256, unroll * 8)))
-    with torch.no_grad():
-        trained_state = model.rollout(latent, sensors, horizon)
-        baseline_state = baseline.rollout(latent, sensors, horizon)
-    metrics = evaluate_state(latent, trained_state, sensors, lesion_mask, positions, target)
-    baseline_metrics = evaluate_state(latent, baseline_state, sensors, lesion_mask, positions, target)
+    metrics = evaluate_candidate(
+        model,
+        latent,
+        sensors,
+        lesion_mask,
+        positions,
+        target,
+        horizon,
+    )
+    baseline_metrics = evaluate_candidate(
+        baseline,
+        latent,
+        sensors,
+        lesion_mask,
+        positions,
+        target,
+        horizon,
+    )
     deltas = {key: metrics[key] - baseline_metrics[key] for key in metrics}
+    preview = preview_sequence(model, latent, sensors, horizon)
 
     out_dir.mkdir(parents=True, exist_ok=True)
+    preview_json = out_dir / f"{phenotype_name}.preview.json"
+    preview_svg = out_dir / f"{phenotype_name}.preview.svg"
+    preview_json.write_text(json.dumps({"frames": preview}, indent=2, sort_keys=True) + "\n")
+    write_preview_svg(preview_svg, preview)
     checkpoint = out_dir / f"{phenotype_name}.pt"
     manifest = save_checkpoint(checkpoint, model, config, target, metrics)
     report = {
@@ -82,6 +100,9 @@ def train_one(config: dict, phenotype_name: str, out_dir: Path) -> dict:
         "metrics": metrics,
         "baseline_metrics": baseline_metrics,
         "delta_vs_untrained": deltas,
+        "evaluation_protocol": "controlled-field-lesion-v2",
+        "preview_json": preview_json.name,
+        "preview_svg": preview_svg.name,
         "manifest": manifest,
     }
     (out_dir / f"{phenotype_name}.evaluation.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
