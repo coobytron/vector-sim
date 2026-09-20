@@ -19,6 +19,7 @@ import {
   type SpectralLookProfile,
 } from '../spectral/looks';
 import { HomeSpectralEmitters } from './homeSpectralEmitters';
+import { MotionTrailBuffer } from './motionTrailBuffer';
 import { SpectralCalibrationScene } from './spectralCalibrationScene';
 import { SpectralPostProcessor } from './spectralPostProcessor';
 import { topologyOverlayVisible } from './presentationPolicy';
@@ -66,6 +67,9 @@ export class VectorRenderer {
   private readonly faceMaterial: THREE.MeshStandardMaterial;
   private readonly forwardMarkers: THREE.InstancedMesh;
   private readonly forwardMaterial: THREE.MeshStandardMaterial;
+  private readonly trailGeometry: THREE.BufferGeometry;
+  private readonly trailMaterial: THREE.LineBasicMaterial;
+  private readonly motionTrails: MotionTrailBuffer;
   private readonly packer: VectorBufferPacker;
   private readonly transform = new THREE.Matrix4();
   private readonly position = new THREE.Vector3();
@@ -207,6 +211,35 @@ export class VectorRenderer {
     this.nodeEmissionColors = new Float32Array(snapshot.active.length * 3);
     this.nodeEmissionStrengths = new Float32Array(snapshot.active.length);
     this.packer = new VectorBufferPacker(snapshot);
+    this.motionTrails = new MotionTrailBuffer(
+      snapshot.topology.organisms.length,
+      tier.name === 'mobile' ? 16 : 24,
+    );
+    this.trailGeometry = new THREE.BufferGeometry();
+    this.trailGeometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(this.motionTrails.buffers.positions, 3).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
+    this.trailGeometry.setAttribute(
+      'color',
+      new THREE.BufferAttribute(this.motionTrails.buffers.colors, 3).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
+    this.trailMaterial = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false,
+      toneMapped: true,
+    });
+    const trailLines = new THREE.LineSegments(this.trailGeometry, this.trailMaterial);
+    trailLines.frustumCulled = false;
+    trailLines.visible = this.mode !== 'calibration';
+    this.scene.add(trailLines);
+
     this.nodes.geometry.setAttribute(
       'instanceOpacity',
       new THREE.InstancedBufferAttribute(this.packer.buffers.nodeOpacities, 1).setUsage(
@@ -343,6 +376,15 @@ export class VectorRenderer {
     const cameraDistance = this.camera.position.distanceTo(this.controls.target);
     this.packOptions.lod = this.fixedLod ?? selectMorphologyLod(cameraDistance, this.tier);
     const buffers = this.packer.update(snapshot, alpha, this.packOptions);
+    this.motionTrails.update(
+      snapshot.tick,
+      buffers.nodePositions,
+      snapshot.topology.nodeOrganism,
+      buffers.nodeScales,
+      buffers.organismTrailPersistence,
+    );
+    this.trailGeometry.getAttribute('position').needsUpdate = true;
+    this.trailGeometry.getAttribute('color').needsUpdate = true;
 
     for (let node = 0; node < snapshot.active.length; node += 1) {
       const offset = node * 3;
@@ -504,6 +546,9 @@ export class VectorRenderer {
     this.faceMaterial.depthWrite = false;
     this.faceMaterial.roughness = technical ? 0.9 : ghost ? 0.3 : 0.74;
     this.faceMaterial.needsUpdate = true;
+
+    this.trailMaterial.opacity = technical ? 0.32 : ghost ? 0.24 : 0.42;
+    this.trailMaterial.needsUpdate = true;
 
     this.forwardMaterial.wireframe = technical;
     this.forwardMaterial.transparent = ghost;
