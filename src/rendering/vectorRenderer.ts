@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { createHomeEnvironment } from '../environments/home';
+import { applyHomeEnvironmentLook, createHomeEnvironment } from '../environments/home';
 import type { HomeCameraPreset, HomePresetManifest } from '../environments/homePresets';
 import { describeOutputCapture, downloadCanvasPng } from '../export/colorContract';
 import { selectMorphologyLod } from '../organisms/morphology';
@@ -82,6 +82,7 @@ export class VectorRenderer {
   private readonly resizeObserver: ResizeObserver;
   private readonly postProcessor: SpectralPostProcessor;
   private readonly homeEmitters?: HomeSpectralEmitters;
+  private readonly homeEnvironment?: THREE.Group;
   private readonly calibration?: SpectralCalibrationScene;
   private readonly mode: RenderMode;
   private readonly fixedLod?: MorphologyLod;
@@ -155,7 +156,9 @@ export class VectorRenderer {
       this.calibration = new SpectralCalibrationScene(options.look);
       this.scene.add(this.calibration.group);
     } else if (this.mode === 'home') {
-      this.scene.add(createHomeEnvironment(options.homePreset));
+      this.homeEnvironment = createHomeEnvironment(options.homePreset);
+      applyHomeEnvironmentLook(this.homeEnvironment, options.look.name);
+      this.scene.add(this.homeEnvironment);
       this.homeEmitters = new HomeSpectralEmitters(options.look);
       this.scene.add(this.homeEmitters.group);
     } else {
@@ -477,6 +480,7 @@ export class VectorRenderer {
     this.look = look;
     this.applyOrganismLook(look);
     this.postProcessor.setLook(look);
+    if (this.homeEnvironment) applyHomeEnvironmentLook(this.homeEnvironment, look.name);
     this.homeEmitters?.setLook(look);
     this.calibration?.setLook(look);
     this.setSpectralProbe(
