@@ -48,3 +48,14 @@ export {
   packVectorNcaWeights,
 } from './webgl2Mlp';
 export type { PackedFloatTexture, VectorNcaWeightTextures } from './webgl2Mlp';
+
+export {
+  compareNcaStates,
+  runWebGlNcaParity,
+  toleranceSignature,
+} from './webgl2Parity';
+export type {
+  NcaStateComparison,
+  WebGlNcaParityOptions,
+  WebGlNcaParityResult,
+} from './webgl2Parity';
