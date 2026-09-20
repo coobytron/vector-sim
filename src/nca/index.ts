@@ -38,6 +38,7 @@ export {
   atlasTexel,
   createWebGlNcaAtlasLayout,
   packNodeChannels,
+  unpackNodeChannels,
 } from './webgl2Layout';
 export type { WebGlNcaAtlasLayout } from './webgl2Layout';
 
