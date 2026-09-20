@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createHomeEnvironment } from '../environments/home';
+import type { HomeCameraPreset, HomePresetManifest } from '../environments/homePresets';
 import { describeOutputCapture, downloadCanvasPng } from '../export/colorContract';
 import { selectMorphologyLod } from '../organisms/morphology';
 import type { MorphologyLod, OrganismVisualState } from '../organisms/types';
@@ -39,6 +40,8 @@ export interface VectorRendererOptions {
   look: SpectralLookProfile;
   captureState?: OrganismVisualState;
   captureDistance?: MorphologyLod;
+  homePreset?: HomePresetManifest;
+  homeCamera?: HomeCameraPreset;
 }
 
 function colorFromLinear(color: Rgb, target = new THREE.Color()): THREE.Color {
@@ -82,6 +85,7 @@ export class VectorRenderer {
   private readonly calibration?: SpectralCalibrationScene;
   private readonly mode: RenderMode;
   private readonly fixedLod?: MorphologyLod;
+  private readonly homeCamera?: HomeCameraPreset;
   private readonly packOptions: { lod: MorphologyLod; stateOverride?: OrganismVisualState } = {
     lod: 'macro',
   };
@@ -96,6 +100,7 @@ export class VectorRenderer {
   ) {
     this.mode = options.mode;
     this.fixedLod = options.captureDistance;
+    this.homeCamera = options.homeCamera;
     this.packOptions.stateOverride = options.captureState;
     this.look = options.look;
     this.debugSample = evaluateSpectralColor(
@@ -120,11 +125,19 @@ export class VectorRenderer {
       this.camera.position.set(0, 0.15, 8.8);
     } else if (this.mode === 'organisms') {
       this.setOrganismCamera(options.captureDistance ?? 'mid');
+    } else if (options.homeCamera) {
+      this.camera.position.set(options.homeCamera.position.x, options.homeCamera.position.y, options.homeCamera.position.z);
+      this.camera.fov = options.homeCamera.fovDegrees;
+      this.camera.updateProjectionMatrix();
     } else {
       this.camera.position.set(5.4, 3.75, 6.2);
     }
     this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.target.set(0, this.mode === 'calibration' ? 0 : this.mode === 'organisms' ? 0.72 : 1.0, 0);
+    if (this.mode === 'home' && options.homeCamera) {
+      this.controls.target.set(options.homeCamera.target.x, options.homeCamera.target.y, options.homeCamera.target.z);
+    } else {
+      this.controls.target.set(0, this.mode === 'calibration' ? 0 : this.mode === 'organisms' ? 0.72 : 1.0, 0);
+    }
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.075;
     this.controls.minDistance = this.mode === 'calibration' ? 6.5 : this.mode === 'organisms' ? 2.2 : 4.0;
@@ -142,7 +155,7 @@ export class VectorRenderer {
       this.calibration = new SpectralCalibrationScene(options.look);
       this.scene.add(this.calibration.group);
     } else if (this.mode === 'home') {
-      this.scene.add(createHomeEnvironment());
+      this.scene.add(createHomeEnvironment(options.homePreset));
       this.homeEmitters = new HomeSpectralEmitters(options.look);
       this.scene.add(this.homeEmitters.group);
     } else {
@@ -501,8 +514,15 @@ export class VectorRenderer {
     } else if (this.mode === 'organisms') {
       this.setOrganismCamera(this.fixedLod ?? 'mid');
       this.controls.target.set(0, 0.72, 0);
+    } else if (this.homeCamera) {
+      this.camera.position.set(this.homeCamera.position.x, this.homeCamera.position.y, this.homeCamera.position.z);
+      this.camera.fov = this.homeCamera.fovDegrees;
+      this.camera.updateProjectionMatrix();
+      this.controls.target.set(this.homeCamera.target.x, this.homeCamera.target.y, this.homeCamera.target.z);
     } else {
       this.camera.position.set(5.4, 3.75, 6.2);
+      this.camera.fov = 42;
+      this.camera.updateProjectionMatrix();
       this.controls.target.set(0, 1.0, 0);
     }
     this.controls.update();
