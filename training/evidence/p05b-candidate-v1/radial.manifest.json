@@ -1,0 +1,28 @@
+{
+  "architecture": "vector_nca_mlp_v1",
+  "checkpoint_version": "p05b-candidate-v1",
+  "dtype": "float32",
+  "hidden_width": 64,
+  "intended_use": "P05 training development and P06 browser-export contract validation",
+  "latent_channels": 16,
+  "limitations": [
+    "Candidate checkpoint; production phenotype quality still requires visual and physical-device validation.",
+    "Exact PyTorch floating-point replay is only expected within the pinned environment."
+  ],
+  "metrics": {
+    "damage_recovery_delta": 30.321596145629883,
+    "growth": 32.571285247802734,
+    "max_abs_state": 85.61956787109375,
+    "nan_rate": 0,
+    "negative_field_response": 1.0895944833755493,
+    "phenotype_target_loss": 416.3507080078125,
+    "positive_field_response": 17.894668579101562,
+    "stability_error": 1496.7139892578125
+  },
+  "phenotype": "radial",
+  "schema_version": 1,
+  "sensor_channels": 6,
+  "sha256": "2141649f32eada840f4d1e602a1584e9005619e1feff32f476ae6f0ad6a53cd2",
+  "training_seed": 240807,
+  "update_rate": 0.25
+}

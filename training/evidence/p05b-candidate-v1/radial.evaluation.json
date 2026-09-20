@@ -1,0 +1,64 @@
+{
+  "baseline_metrics": {
+    "damage_recovery_delta": 39.31645965576172,
+    "growth": 38.883705139160156,
+    "max_abs_state": 93.78787994384766,
+    "nan_rate": 0,
+    "negative_field_response": -31.70223045349121,
+    "phenotype_target_loss": 141.14715576171875,
+    "positive_field_response": 10.697376251220703,
+    "stability_error": 2138.00927734375
+  },
+  "delta_vs_untrained": {
+    "damage_recovery_delta": -8.994863510131836,
+    "growth": -6.312419891357422,
+    "max_abs_state": -8.168312072753906,
+    "nan_rate": 0,
+    "negative_field_response": 32.79182493686676,
+    "phenotype_target_loss": 275.20355224609375,
+    "positive_field_response": 7.197292327880859,
+    "stability_error": -641.2952880859375
+  },
+  "evaluation_steps": 512,
+  "manifest": {
+    "architecture": "vector_nca_mlp_v1",
+    "checkpoint_version": "p05b-candidate-v1",
+    "dtype": "float32",
+    "hidden_width": 64,
+    "intended_use": "P05 training development and P06 browser-export contract validation",
+    "latent_channels": 16,
+    "limitations": [
+      "Candidate checkpoint; production phenotype quality still requires visual and physical-device validation.",
+      "Exact PyTorch floating-point replay is only expected within the pinned environment."
+    ],
+    "metrics": {
+      "damage_recovery_delta": 30.321596145629883,
+      "growth": 32.571285247802734,
+      "max_abs_state": 85.61956787109375,
+      "nan_rate": 0,
+      "negative_field_response": 1.0895944833755493,
+      "phenotype_target_loss": 416.3507080078125,
+      "positive_field_response": 17.894668579101562,
+      "stability_error": 1496.7139892578125
+    },
+    "phenotype": "radial",
+    "schema_version": 1,
+    "sensor_channels": 6,
+    "sha256": "2141649f32eada840f4d1e602a1584e9005619e1feff32f476ae6f0ad6a53cd2",
+    "training_seed": 240807,
+    "update_rate": 0.25
+  },
+  "metrics": {
+    "damage_recovery_delta": 30.321596145629883,
+    "growth": 32.571285247802734,
+    "max_abs_state": 85.61956787109375,
+    "nan_rate": 0,
+    "negative_field_response": 1.0895944833755493,
+    "phenotype_target_loss": 416.3507080078125,
+    "positive_field_response": 17.894668579101562,
+    "stability_error": 1496.7139892578125
+  },
+  "phenotype": "radial",
+  "seed": 240807,
+  "train_steps": 96
+}
