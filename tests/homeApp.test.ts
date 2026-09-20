@@ -71,9 +71,10 @@ describe('Home app route integration', () => {
   it('passes the selected manifest and camera to the shell and renderer and uses its seed', () => {
     const app = start('?homePreset=domestic-section&homeCamera=top-down&tick=12');
     const options = vi.mocked(VectorRenderer).mock.calls[0]![3];
-    expect(options.homeRoute?.preset).toBe(HOME_PRESETS['domestic-section']);
-    expect(options.homeRoute?.camera.role).toBe('top-down');
-    expect(vi.mocked(createShell).mock.calls[0]![7]).toBe(options.homeRoute);
+    expect(options.homePreset).toBe(HOME_PRESETS['domestic-section']);
+    expect(options.homeCamera?.role).toBe('top-down');
+    expect(vi.mocked(createShell).mock.calls[0]![7]?.preset).toBe(options.homePreset);
+    expect(vi.mocked(createShell).mock.calls[0]![7]?.camera).toBe(options.homeCamera);
     expect(vi.mocked(HeadlessSimulation).mock.calls[0]![0].seed).toBe(4102);
     expect(vi.mocked(HeadlessSimulation).mock.results[0]!.value.tick).toBe(12);
     expect(shell.pauseButton.textContent).toBe('Resume');
@@ -96,6 +97,7 @@ describe('Home app route integration', () => {
       quality: 'mobile', seed: '7', tick: '12',
     });
     expect(location.assign).not.toHaveBeenCalled();
+    expect(shell.status.textContent).toContain('macro');
     shell.recenterButton.dispatchEvent(new Event('click'));
     expect(renderer.recenter).toHaveBeenCalledOnce();
     app.dispose();
@@ -115,7 +117,7 @@ describe('Home app route integration', () => {
 
   it('keeps Home route parameters out of Organism Lab rendering and seed selection', () => {
     const app = start('?organisms=1&homePreset=tabletop-habitat&homeCamera=macro&tick=0');
-    expect(vi.mocked(VectorRenderer).mock.calls[0]![3].homeRoute).toBeUndefined();
+    expect(vi.mocked(VectorRenderer).mock.calls[0]![3].homePreset).toBeUndefined();
     expect(vi.mocked(HeadlessSimulation).mock.calls[0]![0].seed).toBe(0x5350_4543);
     app.dispose();
   });

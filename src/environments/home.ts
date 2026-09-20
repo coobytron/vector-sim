@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { SpectralLookName } from '../spectral/looks';
 import { createHomeGeometryParts, type HomeGeometryPart } from './homeGeometry';
 import {
   selectHomePreset,
@@ -16,6 +17,9 @@ const porcelainLight = new THREE.MeshStandardMaterial({
   roughness: 0.8,
   metalness: 0,
 });
+
+export const GHOST_HOME_SURFACE_OPACITY = 0.16;
+export const GHOST_HOME_LINE_OPACITY = 0.12;
 
 const graphite = new THREE.LineBasicMaterial({
   color: 0xa3a3a0,
@@ -77,4 +81,36 @@ export function createHomeEnvironment(
   }
 
   return home;
+}
+
+
+export function applyHomeEnvironmentLook(
+  home: THREE.Group,
+  look: SpectralLookName,
+): void {
+  const ghost = look === 'ghost';
+  home.traverse((object) => {
+    if (object instanceof THREE.Mesh) {
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) {
+        if (!(material instanceof THREE.MeshStandardMaterial)) continue;
+        material.transparent = ghost;
+        material.opacity = ghost ? GHOST_HOME_SURFACE_OPACITY : 1;
+        material.depthWrite = !ghost;
+        material.needsUpdate = true;
+      }
+      return;
+    }
+
+    if (object instanceof THREE.Line || object instanceof THREE.LineSegments) {
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) {
+        if (!(material instanceof THREE.LineBasicMaterial)) continue;
+        material.transparent = true;
+        material.opacity = ghost ? GHOST_HOME_LINE_OPACITY : 0.45;
+        material.depthWrite = !ghost;
+        material.needsUpdate = true;
+      }
+    }
+  });
 }

@@ -76,7 +76,8 @@ export function createApp(root: HTMLElement): VectorSimApp {
     look,
     captureState,
     captureDistance,
-    homeRoute,
+    homePreset: homeRoute?.preset,
+    homeCamera: homeRoute?.camera,
   });
   const stepper = new FixedStepper(1 / 30, 4);
   const benchmark = benchmarkRequested
@@ -100,9 +101,11 @@ export function createApp(root: HTMLElement): VectorSimApp {
     : undefined;
 
   if (paused) shell.pauseButton.textContent = 'Resume';
-  const captureStatus = mode === 'organisms'
+  let captureStatus = mode === 'organisms'
     ? ` · ${captureState ?? 'live state'} · seed ${seed} · ${ncaMode} NCA`
-    : homeRoute ? ` · ${homeRoute.preset.displayName} · seed ${seed}` : '';
+    : mode === 'home' && homeRoute
+      ? ` · ${homeRoute.preset.displayName} · ${homeRoute.camera.role} · seed ${seed}`
+      : '';
   shell.status.textContent = `${tier.name} · ${look.label}${captureStatus} · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2'}`;
   shell.pauseButton.addEventListener('click', () => {
     paused = !paused;
@@ -160,6 +163,8 @@ export function createApp(root: HTMLElement): VectorSimApp {
     url.searchParams.set('homeCamera', shell.homeCameraSelect?.value ?? 'establishing');
     const route = resolveHomeRoute(url.searchParams);
     renderer.setHomeCamera(route.camera);
+    captureStatus = ` · ${route.preset.displayName} · ${route.camera.role} · seed ${seed}`;
+    shell.status.textContent = `${tier.name} · ${look.label}${captureStatus} · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2'}`;
     url.search = writeHomeRoute(url.searchParams, route.preset, route.camera).toString();
     window.history.replaceState({}, '', url);
   });
