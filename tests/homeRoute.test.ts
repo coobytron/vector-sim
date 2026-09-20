@@ -30,6 +30,10 @@ describe('Spectral Homestead route state', () => {
     expect(route.camera.role).toBe('establishing');
   });
 
+  it.each(['__proto__', 'constructor', 'toString'])('rejects inherited preset key %s', (key) => {
+    expect(resolveHomeRoute(`homePreset=${key}`).preset.id).toBe('courtyard-house');
+  });
+
   it('round-trips compact Home route state without disturbing other params', () => {
     const preset = HOME_PRESETS['tabletop-habitat'];
     const camera = preset.cameras.find((candidate) => candidate.role === 'macro');

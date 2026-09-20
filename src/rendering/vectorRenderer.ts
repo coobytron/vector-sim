@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createHomeEnvironment } from '../environments/home';
+import { resolveHomeRoute, type HomeRouteState } from '../environments/homeRoute';
+import type { HomeCameraPreset } from '../environments/homePresets';
 import { describeOutputCapture, downloadCanvasPng } from '../export/colorContract';
 import { selectMorphologyLod } from '../organisms/morphology';
 import type { MorphologyLod, OrganismVisualState } from '../organisms/types';
@@ -19,6 +21,7 @@ import {
   type SpectralLookProfile,
 } from '../spectral/looks';
 import { HomeSpectralEmitters } from './homeSpectralEmitters';
+import { applyHomeCamera } from './homeCamera';
 import { MotionTrailBuffer } from './motionTrailBuffer';
 import { SpectralCalibrationScene } from './spectralCalibrationScene';
 import { SpectralPostProcessor } from './spectralPostProcessor';
@@ -39,6 +42,7 @@ export interface VectorRendererOptions {
   look: SpectralLookProfile;
   captureState?: OrganismVisualState;
   captureDistance?: MorphologyLod;
+  homeRoute?: HomeRouteState;
 }
 
 function colorFromLinear(color: Rgb, target = new THREE.Color()): THREE.Color {
@@ -87,6 +91,7 @@ export class VectorRenderer {
   };
   private look: SpectralLookProfile;
   private debugSample: SpectralColorSample;
+  private homeCamera?: HomeCameraPreset;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -95,6 +100,7 @@ export class VectorRenderer {
     options: VectorRendererOptions,
   ) {
     this.mode = options.mode;
+    const homeRoute = this.mode === 'home' ? options.homeRoute ?? resolveHomeRoute('') : undefined;
     this.fixedLod = options.captureDistance;
     this.packOptions.stateOverride = options.captureState;
     this.look = options.look;
@@ -127,10 +133,11 @@ export class VectorRenderer {
     this.controls.target.set(0, this.mode === 'calibration' ? 0 : this.mode === 'organisms' ? 0.72 : 1.0, 0);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.075;
-    this.controls.minDistance = this.mode === 'calibration' ? 6.5 : this.mode === 'organisms' ? 2.2 : 4.0;
+    this.controls.minDistance = this.mode === 'calibration' ? 6.5 : this.mode === 'organisms' ? 2.2 : 0.25;
     this.controls.maxDistance = 12;
     this.controls.maxPolarAngle = Math.PI * 0.49;
     this.controls.update();
+    if (homeRoute) this.setHomeCamera(homeRoute.camera);
 
     const key = new THREE.DirectionalLight(0xffffff, 3.2);
     key.position.set(4, 7, 5);
@@ -142,7 +149,7 @@ export class VectorRenderer {
       this.calibration = new SpectralCalibrationScene(options.look);
       this.scene.add(this.calibration.group);
     } else if (this.mode === 'home') {
-      this.scene.add(createHomeEnvironment());
+      this.scene.add(createHomeEnvironment(homeRoute?.preset));
       this.homeEmitters = new HomeSpectralEmitters(options.look);
       this.scene.add(this.homeEmitters.group);
     } else {
@@ -494,6 +501,12 @@ export class VectorRenderer {
     return downloadCanvasPng(this.canvas, `spectral-homestead-${this.mode}-${Date.now()}.png`);
   }
 
+  setHomeCamera(preset: HomeCameraPreset): void {
+    if (this.mode !== 'home') return;
+    this.homeCamera = preset;
+    applyHomeCamera(this.camera, this.controls, preset);
+  }
+
   recenter(): void {
     if (this.mode === 'calibration') {
       this.camera.position.set(0, 0.15, 8.8);
@@ -501,9 +514,8 @@ export class VectorRenderer {
     } else if (this.mode === 'organisms') {
       this.setOrganismCamera(this.fixedLod ?? 'mid');
       this.controls.target.set(0, 0.72, 0);
-    } else {
-      this.camera.position.set(5.4, 3.75, 6.2);
-      this.controls.target.set(0, 1.0, 0);
+    } else if (this.homeCamera) {
+      this.setHomeCamera(this.homeCamera);
     }
     this.controls.update();
   }
