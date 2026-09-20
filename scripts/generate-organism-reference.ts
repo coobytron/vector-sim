@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import sharp from 'sharp';
 import { createMorphologyTopology } from '../src/organisms/morphology';
 import {
@@ -14,7 +14,12 @@ import {
 import { createDecodedCellVisual, decodeCellVisual } from '../src/organisms/visualState';
 import type { QualityTier } from '../src/simulation/types';
 import { evaluateSpectralColor, rgbToCss } from '../src/spectral/color';
-import { SPECTRAL_LOOKS, type SpectralLookName } from '../src/spectral/looks';
+import {
+  GHOST_MEMBRANE_OPACITY,
+  GHOST_PRIMARY_OPACITY,
+  SPECTRAL_LOOKS,
+  type SpectralLookName,
+} from '../src/spectral/looks';
 
 const width = 1536;
 const height = 1024;
@@ -165,7 +170,9 @@ function nodeStates(spec: RenderSpec): NodeRenderState[] {
 
 function lookBase(look: SpectralLookName): { stroke: string; fill: string; opacity: number } {
   if (look === 'technical') return { stroke: '#34343a', fill: '#f8f8f6', opacity: 0.9 };
-  if (look === 'ghost') return { stroke: '#8a8a94', fill: '#f4f4f5', opacity: 0.34 };
+  if (look === 'ghost') {
+    return { stroke: '#8a8a94', fill: '#f4f4f5', opacity: GHOST_PRIMARY_OPACITY };
+  }
   return { stroke: '#65656c', fill: '#eeeeeb', opacity: 0.68 };
 }
 
@@ -191,7 +198,9 @@ function renderOrganism(spec: RenderSpec): string {
       return `${x.toFixed(2)},${y.toFixed(2)}`;
     };
     const fill = spec.look === 'technical' ? '#f7f7f5' : '#dfe1e4';
-    const opacity = spec.look === 'ghost' ? 0.04 : spec.look === 'technical' ? 0.025 : 0.075;
+    const opacity = spec.look === 'ghost'
+      ? GHOST_MEMBRANE_OPACITY
+      : spec.look === 'technical' ? 0.025 : 0.075;
     faces.push({
       depth: (a.point.depth + b.point.depth + c.point.depth) / 3,
       svg: `<polygon points="${point(a)} ${point(b)} ${point(c)}" fill="${fill}" stroke="${base.stroke}" stroke-width="0.45" opacity="${opacity.toFixed(3)}"/>`,
@@ -388,15 +397,44 @@ function stateSvg(): string {
   );
 }
 
-async function render(svg: string, path: string): Promise<string> {
-  await mkdir(dirname(path), { recursive: true });
-  await sharp(Buffer.from(svg)).png({ compressionLevel: 9, adaptiveFiltering: false }).toFile(path);
-  const png = await readFile(path);
-  return createHash('sha256').update(png).digest('hex');
+interface RenderedReference {
+  /** Digest of the drawing itself. Pure string output, so it is reproducible. */
+  readonly sourceSha256: string;
+  /** Digest of the raster. Host-dependent: see the note on `sources` below. */
+  readonly pngSha256: string;
 }
 
-const morphologySha256 = await render(morphologySvg(), morphologyPath);
-const stateSha256 = await render(stateSvg(), statePath);
+/**
+ * The SVG source is the reproducible artifact. Rasterization resolves
+ * `font-family` against host-installed fonts, so the label text — and therefore
+ * the PNG bytes — differ between machines even when the drawing is identical.
+ * Both digests are recorded: `sources` is the portable evidence baseline and
+ * `files` pins the bytes actually committed here.
+ *
+ * The SVG itself lands in `.tmp/` rather than `assets/`: at ~800 KB each these
+ * are build intermediates, and the digest is what carries the evidence. Compare
+ * two hosts by regenerating and diffing the manifest — an unchanged `sources`
+ * entry beside a changed `files` entry is font fallback, not a drawing change.
+ */
+async function render(svg: string, path: string): Promise<RenderedReference> {
+  await mkdir(dirname(path), { recursive: true });
+  await mkdir(resolve('.tmp/organism-reference'), { recursive: true });
+  await writeFile(
+    resolve('.tmp/organism-reference', basename(path).replace(/\.png$/, '.svg')),
+    svg,
+  );
+  await sharp(Buffer.from(svg)).png({ compressionLevel: 9, adaptiveFiltering: false }).toFile(path);
+  const png = await readFile(path);
+  return {
+    sourceSha256: createHash('sha256').update(svg).digest('hex'),
+    pngSha256: createHash('sha256').update(png).digest('hex'),
+  };
+}
+
+const morphology = await render(morphologySvg(), morphologyPath);
+const state = await render(stateSvg(), statePath);
+const morphologySha256 = morphology.pngSha256;
+const stateSha256 = state.pngSha256;
 const manifest = {
   schema: 'vector-sim-organism-reference-v1',
   width,
@@ -419,6 +457,10 @@ const manifest = {
   files: {
     'organism-morphology-reference.png': morphologySha256,
     'organism-state-reference.png': stateSha256,
+  },
+  sources: {
+    'organism-morphology-reference.svg': morphology.sourceSha256,
+    'organism-state-reference.svg': state.sourceSha256,
   },
 };
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);

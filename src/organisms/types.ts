@@ -80,6 +80,12 @@ export interface VisualDecodeInput {
   role: NodeRole;
   phase: number;
   stateOverride?: OrganismVisualState;
+  /**
+   * Upper bound on emission strength, `[0, 1]`. Defaults to 1. The lifecycle
+   * bridge uses it to hold un-earned states — a pending repair — to a restrained
+   * cue without inventing a separate wavelength for them.
+   */
+  emissionCeiling?: number;
 }
 
 export interface DecodedCellVisual {

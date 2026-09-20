@@ -30,7 +30,11 @@
   ],
   "captureRoute": "?organisms=1&seed=1397769539&tick=180&state=feeding&look=porcelain&distance=mid&nca=frozen",
   "files": {
-    "organism-morphology-reference.png": "f3a0caca62f16c13bd1abd21ea18c4ea29fd7918d4be0faefe90e161d85141fe",
-    "organism-state-reference.png": "122eff35ac3c660b6d4476350f4460d02bf3fbc4e7f12a0a2891aac4d1f11bbc"
+    "organism-morphology-reference.png": "23b72a1a75d74da3f3c282d08bf06881315f342d7d69e9359b97b9b106d8b3fb",
+    "organism-state-reference.png": "0abe47cc267f6902789a5a241853ae0ef1ee0a9e7eb40783fc8c501256c35c33"
+  },
+  "sources": {
+    "organism-morphology-reference.svg": "fb16a53f8b5979b784688fb4c8ab546303b17a582cab81ff39770c92d74ba093",
+    "organism-state-reference.svg": "fcfd73b97cbd98d098fe11bd8625cab1c13f5fa2aceda3a6763684e430f4c896"
   }
 }

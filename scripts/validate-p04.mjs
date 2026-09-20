@@ -73,6 +73,30 @@ for (const [file, expectedSha] of Object.entries(manifest.files ?? {})) {
   if (sha !== expectedSha) failures.push(`${file} digest does not match its manifest.`);
 }
 
+// PNG digests above only pin the bytes committed here: rasterizing the label
+// text resolves `font-family` against host-installed fonts, so regenerating on
+// another machine changes them even when the drawing is identical. The SVG
+// sources are pure string output and therefore reproducible anywhere, so they
+// are the portable half of the capture evidence.
+const sources = Object.entries(manifest.sources ?? {});
+if (sources.length === 0) {
+  failures.push('Organism reference manifest is missing reproducible SVG source digests.');
+}
+for (const [file, expectedSha] of sources) {
+  if (typeof expectedSha !== 'string' || !/^[0-9a-f]{64}$/.test(expectedSha)) {
+    failures.push(`Organism reference source digest for ${file} is not a SHA-256.`);
+    continue;
+  }
+  // Regenerated locally by `npm run capture:organisms`; absent on a clean
+  // checkout, where there is nothing to compare against yet.
+  const path = resolve(root, '.tmp/organism-reference', file);
+  if (!existsSync(path)) continue;
+  const sha = createHash('sha256').update(readFileSync(path, 'utf8')).digest('hex');
+  if (sha !== expectedSha) {
+    failures.push(`${file} was regenerated with a different drawing than its manifest digest.`);
+  }
+}
+
 const benchmark = JSON.parse(read('benchmark-results/p04-node-reference-2026-08-07.json'));
 const mobile = benchmark.tiers?.find((tier) => tier.tier === 'mobile');
 const desktop = benchmark.tiers?.find((tier) => tier.tier === 'desktop');
