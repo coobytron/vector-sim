@@ -1,5 +1,11 @@
+import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { createHomeEnvironment } from '../src/environments/home';
+import {
+  GHOST_HOME_LINE_OPACITY,
+  GHOST_HOME_SURFACE_OPACITY,
+  applyHomeEnvironmentLook,
+  createHomeEnvironment,
+} from '../src/environments/home';
 import { HOME_PRESETS } from '../src/environments/homePresets';
 import {
   createHomeGeometryParts,
@@ -59,5 +65,32 @@ describe('Spectral Homestead modular geometry', () => {
       expect(preset.effectSources.some((source) => source.strength > 0 && sourceIds.has(source.id))).toBe(true);
       expect(preset.effectSources.some((source) => source.strength < 0 && sourceIds.has(source.id))).toBe(true);
     }
+  });
+  it('applies and reverses the Ghost Volume architecture opacity contract', () => {
+    const group = createHomeEnvironment(HOME_PRESETS['courtyard-house']);
+    applyHomeEnvironmentLook(group, 'ghost');
+
+    const mesh = group.children.find((child) => child instanceof THREE.Mesh) as THREE.Mesh | undefined;
+    const line = group.children.find(
+      (child) => child instanceof THREE.Line || child instanceof THREE.LineSegments,
+    ) as THREE.Line | THREE.LineSegments | undefined;
+    expect(mesh).toBeDefined();
+    expect(line).toBeDefined();
+    if (!mesh || !line) throw new Error('Home fixture lacks mesh/line geometry');
+
+    const meshMaterial = mesh.material as THREE.MeshStandardMaterial;
+    const lineMaterial = line.material as THREE.LineBasicMaterial;
+    expect(meshMaterial.transparent).toBe(true);
+    expect(meshMaterial.opacity).toBe(GHOST_HOME_SURFACE_OPACITY);
+    expect(meshMaterial.depthWrite).toBe(false);
+    expect(lineMaterial.opacity).toBe(GHOST_HOME_LINE_OPACITY);
+    expect(lineMaterial.depthWrite).toBe(false);
+
+    applyHomeEnvironmentLook(group, 'porcelain');
+    expect(meshMaterial.transparent).toBe(false);
+    expect(meshMaterial.opacity).toBe(1);
+    expect(meshMaterial.depthWrite).toBe(true);
+    expect(lineMaterial.opacity).toBe(0.45);
+    expect(lineMaterial.depthWrite).toBe(true);
   });
 });
