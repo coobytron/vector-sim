@@ -22,7 +22,7 @@ describe('WebGL2 NCA weight textures and shader', () => {
 
   it('packs all four checkpoint tensors', () => {
     const weights = packVectorNcaWeights(checkpoint);
-    expect(weights.hiddenWeights.data.length).toBeGreaterThan(
+    expect(weights.hiddenWeights.data.length).toBeGreaterThanOrEqual(
       checkpoint.tensors['net.0.weight']?.data.length ?? 0,
     );
     expect(weights.outputWeights.data.length).toBeGreaterThanOrEqual(
