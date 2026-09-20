@@ -107,3 +107,32 @@ export function packNodeChannels(
   }
   return packed;
 }
+
+export function unpackNodeChannels(
+  packed: Float32Array,
+  channels: number,
+  layout: WebGlNcaAtlasLayout,
+  kind: 'state' | 'sensor',
+): Float32Array {
+  const blocks = kind === 'state' ? layout.stateBlocks : layout.sensorBlocks;
+  const width = kind === 'state' ? layout.stateTextureWidth : layout.sensorTextureWidth;
+  const height = kind === 'state' ? layout.stateTextureHeight : layout.sensorTextureHeight;
+  const expectedPacked = width * height * 4;
+  if (packed.length !== expectedPacked) {
+    throw new RangeError(
+      `${kind} packed length ${packed.length} does not match atlas capacity ${expectedPacked}`,
+    );
+  }
+  if (channels <= 0 || blocks <= 0) return new Float32Array(0);
+
+  const values = new Float32Array(layout.nodeCount * channels);
+  for (let node = 0; node < layout.nodeCount; node += 1) {
+    for (let channel = 0; channel < channels; channel += 1) {
+      const block = Math.floor(channel / 4);
+      const lane = channel % 4;
+      const [x, y] = atlasTexel(layout, node, block, kind);
+      values[node * channels + channel] = packed[(y * width + x) * 4 + lane] ?? 0;
+    }
+  }
+  return values;
+}

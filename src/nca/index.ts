@@ -38,6 +38,7 @@ export {
   atlasTexel,
   createWebGlNcaAtlasLayout,
   packNodeChannels,
+  unpackNodeChannels,
 } from './webgl2Layout';
 export type { WebGlNcaAtlasLayout } from './webgl2Layout';
 
@@ -47,3 +48,14 @@ export {
   packVectorNcaWeights,
 } from './webgl2Mlp';
 export type { PackedFloatTexture, VectorNcaWeightTextures } from './webgl2Mlp';
+
+export {
+  compareNcaStates,
+  runWebGlNcaParity,
+  toleranceSignature,
+} from './webgl2Parity';
+export type {
+  NcaStateComparison,
+  WebGlNcaParityOptions,
+  WebGlNcaParityResult,
+} from './webgl2Parity';

@@ -5,6 +5,7 @@ import {
   createWebGlNcaAtlasLayout,
   loadBrowserCheckpoint,
   packNodeChannels,
+  unpackNodeChannels,
 } from '../src/nca';
 import type { BrowserCheckpointContainer } from '../src/nca';
 
@@ -43,6 +44,22 @@ describe('WebGL2 NCA atlas layout', () => {
         expect(actual).toBe(values[node * checkpoint.latentChannels + channel]);
       }
     }
+  });
+
+  it('round-trips packed latent channels exactly', () => {
+    const nodes = 5;
+    const layout = createWebGlNcaAtlasLayout(checkpoint, nodes);
+    const values = Float32Array.from(
+      { length: nodes * checkpoint.latentChannels },
+      (_unused, index) => Math.sin(index * 0.17),
+    );
+    const packed = packNodeChannels(values, checkpoint.latentChannels, layout, 'state');
+    expect(Array.from(unpackNodeChannels(
+      packed,
+      checkpoint.latentChannels,
+      layout,
+      'state',
+    ))).toEqual(Array.from(values));
   });
 
   it('rejects layouts that exceed the device texture limit', () => {
