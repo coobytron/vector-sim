@@ -1,0 +1,64 @@
+{
+  "baseline_metrics": {
+    "damage_recovery_delta": 39.31645965576172,
+    "growth": 38.883705139160156,
+    "max_abs_state": 93.78787994384766,
+    "nan_rate": 0,
+    "negative_field_response": -31.70223045349121,
+    "phenotype_target_loss": 228.73052978515625,
+    "positive_field_response": 10.697376251220703,
+    "stability_error": 2138.00927734375
+  },
+  "delta_vs_untrained": {
+    "damage_recovery_delta": 5.9251556396484375,
+    "growth": 5.043720245361328,
+    "max_abs_state": 12.712730407714844,
+    "nan_rate": 0,
+    "negative_field_response": 76.1130199432373,
+    "phenotype_target_loss": -141.19100952148438,
+    "positive_field_response": 68.55047225952148,
+    "stability_error": 406.25390625
+  },
+  "evaluation_steps": 512,
+  "manifest": {
+    "architecture": "vector_nca_mlp_v1",
+    "checkpoint_version": "p05b-candidate-v1",
+    "dtype": "float32",
+    "hidden_width": 64,
+    "intended_use": "P05 training development and P06 browser-export contract validation",
+    "latent_channels": 16,
+    "limitations": [
+      "Candidate checkpoint; production phenotype quality still requires visual and physical-device validation.",
+      "Exact PyTorch floating-point replay is only expected within the pinned environment."
+    ],
+    "metrics": {
+      "damage_recovery_delta": 45.241615295410156,
+      "growth": 43.927425384521484,
+      "max_abs_state": 106.5006103515625,
+      "nan_rate": 0,
+      "negative_field_response": 44.410789489746094,
+      "phenotype_target_loss": 87.53952026367188,
+      "positive_field_response": 79.24784851074219,
+      "stability_error": 2544.26318359375
+    },
+    "phenotype": "branching",
+    "schema_version": 1,
+    "sensor_channels": 6,
+    "sha256": "a60bc28efe5751d6aa05cdafadd65fcd6a3adf4e5db259564b333f4946a64197",
+    "training_seed": 240807,
+    "update_rate": 0.25
+  },
+  "metrics": {
+    "damage_recovery_delta": 45.241615295410156,
+    "growth": 43.927425384521484,
+    "max_abs_state": 106.5006103515625,
+    "nan_rate": 0,
+    "negative_field_response": 44.410789489746094,
+    "phenotype_target_loss": 87.53952026367188,
+    "positive_field_response": 79.24784851074219,
+    "stability_error": 2544.26318359375
+  },
+  "phenotype": "branching",
+  "seed": 240807,
+  "train_steps": 96
+}
