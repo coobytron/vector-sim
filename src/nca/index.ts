@@ -40,3 +40,10 @@ export {
   packNodeChannels,
 } from './webgl2Layout';
 export type { WebGlNcaAtlasLayout } from './webgl2Layout';
+
+export {
+  buildVectorNcaMlpFragmentShader,
+  packFloatTexture,
+  packVectorNcaWeights,
+} from './webgl2Mlp';
+export type { PackedFloatTexture, VectorNcaWeightTextures } from './webgl2Mlp';
