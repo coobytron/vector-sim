@@ -11,6 +11,7 @@ import {
   parseNcaMode,
   parseRunSeed,
 } from '../organisms/captureRoute';
+import { runP06BrowserParity } from '../nca/browserParityReceipt';
 import { detectCapabilities, selectQualityTier } from '../platform/capabilities';
 import { VectorRenderer, type RenderMode } from '../rendering/vectorRenderer';
 import { FixedStepper } from '../simulation/fixedStepper';
@@ -26,6 +27,7 @@ export interface VectorSimApp {
 
 export function createApp(root: HTMLElement): VectorSimApp {
   const parameters = new URLSearchParams(window.location.search);
+  const parityRequested = parameters.get('ncaParity') === '1';
   const capabilities = detectCapabilities();
   const tier = selectQualityTier(capabilities, parameters.get('quality'));
   const mode: RenderMode = parameters.get('organisms') === '1'
@@ -51,6 +53,75 @@ export function createApp(root: HTMLElement): VectorSimApp {
     captureDistance ?? 'mid',
     ncaMode,
   );
+  if (parityRequested) {
+    if (!capabilities.webgl2) {
+      shell.canvas.hidden = true;
+      showFallback(
+        shell.fallback,
+        'WebGL2 parity cannot run.',
+        'This browser does not expose WebGL2, so the P06 CPU↔GPU validation receipt cannot be produced.',
+      );
+      shell.status.textContent = 'P06 parity unavailable';
+      shell.performance.textContent = 'WebGL2 unavailable';
+      return { dispose: () => undefined };
+    }
+
+    const gl = shell.canvas.getContext('webgl2', {
+      antialias: false,
+      preserveDrawingBuffer: false,
+    });
+    if (!gl) {
+      shell.canvas.hidden = true;
+      showFallback(
+        shell.fallback,
+        'WebGL2 context creation failed.',
+        'The browser reports WebGL2 support but could not create the validation context.',
+      );
+      shell.status.textContent = 'P06 parity unavailable';
+      shell.performance.textContent = 'WebGL2 context failed';
+      return { dispose: () => undefined };
+    }
+
+    try {
+      const receipt = runP06BrowserParity(gl, {
+        steps: Number(parameters.get('paritySteps') ?? 1000),
+        tolerance: Number(parameters.get('parityTolerance') ?? 1e-4),
+        boundedLimit: Number(parameters.get('parityBound') ?? 1000),
+      });
+      shell.canvas.hidden = true;
+      shell.fallback.hidden = false;
+      shell.fallback.replaceChildren();
+
+      const card = document.createElement('div');
+      card.className = 'fallback-card';
+      const eyebrow = document.createElement('p');
+      eyebrow.className = 'eyebrow';
+      eyebrow.textContent = 'P06 / CPU↔GPU validation receipt';
+      const heading = document.createElement('h2');
+      heading.textContent = receipt.pass ? 'Parity PASS' : 'Parity FAIL';
+      const summary = document.createElement('p');
+      summary.textContent =
+        `${receipt.steps} steps · tolerance ${receipt.tolerance} · max error ${receipt.result.comparison.maxAbsoluteError.toExponential(3)} · GPU max |${receipt.result.gpuMaxAbs.toFixed(3)}|`;
+      const pre = document.createElement('pre');
+      pre.textContent = JSON.stringify(receipt, null, 2);
+      card.append(eyebrow, heading, summary, pre);
+      shell.fallback.append(card);
+      shell.status.textContent = receipt.pass ? 'P06 parity PASS' : 'P06 parity FAIL';
+      shell.performance.textContent =
+        `${receipt.result.telemetry.steps} GPU steps · ${receipt.result.telemetry.maxStepMs.toFixed(2)} ms max step`;
+    } catch (error) {
+      shell.canvas.hidden = true;
+      showFallback(
+        shell.fallback,
+        'P06 parity run failed.',
+        error instanceof Error ? error.message : String(error),
+      );
+      shell.status.textContent = 'P06 parity error';
+      shell.performance.textContent = 'Validation failed before receipt';
+    }
+    return { dispose: () => undefined };
+  }
+
   const simulation = new HeadlessSimulation({ tier, seed, ncaMode });
   if (captureTick !== undefined) {
     for (let tick = 0; tick < captureTick; tick += 1) simulation.step();
