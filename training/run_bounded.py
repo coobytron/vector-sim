@@ -80,8 +80,8 @@ def train_one(config: dict, phenotype_name: str, out_dir: Path) -> dict:
             + (negative_state[:, 0] - neutral_state[:, 0]).abs().mean()
         )
         field_response = (
-            torch.relu(torch.tensor(field_margin) - positive_activation)
-            + torch.relu(torch.tensor(field_margin) - negative_activation)
+            torch.relu(neutral_state.new_tensor(field_margin) - positive_activation)
+            + torch.relu(neutral_state.new_tensor(field_margin) - negative_activation)
             + cross_penalty * cross_response
         )
 
