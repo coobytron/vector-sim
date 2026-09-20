@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createHomeEnvironment } from '../src/environments/home';
 import { HOME_PRESETS } from '../src/environments/homePresets';
 import {
   createHomeGeometryParts,
@@ -38,6 +39,15 @@ describe('Spectral Homestead modular geometry', () => {
     ]) {
       expect(roles.has(role as never)).toBe(true);
     }
+  });
+
+  it('instantiates the selected manifest as a named Three.js group', () => {
+    const preset = HOME_PRESETS['domestic-section'];
+    const group = createHomeEnvironment(preset);
+    expect(group.name).toBe('home-domestic-section');
+    expect(group.userData.presetId).toBe('domestic-section');
+    expect(group.userData.seed).toBe(preset.seed);
+    expect(group.children.length).toBe(createHomeGeometryParts(preset).length);
   });
 
   it('binds positive, negative, and switchable sources to visible Home geometry', () => {
