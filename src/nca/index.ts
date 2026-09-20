@@ -33,3 +33,10 @@ export type { LesionRequest, ReferenceRuntime, ReferenceRuntimeOptions } from '.
 export { VectorNcaReferenceKernel } from './reference/vectorNcaKernel';
 export { WebGlNcaRuntime } from './webgl2Runtime';
 export type { WebGlNcaRuntimeOptions, WebGlNcaTelemetry } from './webgl2Runtime';
+
+export {
+  atlasTexel,
+  createWebGlNcaAtlasLayout,
+  packNodeChannels,
+} from './webgl2Layout';
+export type { WebGlNcaAtlasLayout } from './webgl2Layout';

@@ -1,4 +1,6 @@
 import type { LoadedCheckpoint } from './checkpoint/types';
+import { atlasTexel, createWebGlNcaAtlasLayout, packNodeChannels } from './webgl2Layout';
+import type { WebGlNcaAtlasLayout } from './webgl2Layout';
 
 export interface WebGlNcaRuntimeOptions {
   gl: WebGL2RenderingContext;
@@ -76,6 +78,7 @@ export class WebGlNcaRuntime {
   readonly nodeCount: number;
   readonly textureWidth: number;
   readonly textureHeight: number;
+  readonly layout: WebGlNcaAtlasLayout;
 
   private readonly textures: [WebGLTexture, WebGLTexture];
   private readonly framebuffers: [WebGLFramebuffer, WebGLFramebuffer];
@@ -94,11 +97,18 @@ export class WebGlNcaRuntime {
     this.gl = gl;
     this.checkpoint = checkpoint;
     this.nodeCount = nodeCount;
-    this.textureWidth = Math.ceil(Math.sqrt(nodeCount));
-    this.textureHeight = Math.ceil(nodeCount / this.textureWidth);
+    const reportedMaxTextureSize =
+      typeof gl.getParameter === 'function' ? Number(gl.getParameter(gl.MAX_TEXTURE_SIZE)) : 16_384;
+    const maxTextureSize =
+      Number.isFinite(reportedMaxTextureSize) && reportedMaxTextureSize > 0
+        ? Math.floor(reportedMaxTextureSize)
+        : 16_384;
+    this.layout = createWebGlNcaAtlasLayout(checkpoint, nodeCount, maxTextureSize);
+    this.textureWidth = this.layout.stateTextureWidth;
+    this.textureHeight = this.layout.stateTextureHeight;
 
-    const textureA = this.makeTexture();
-    const textureB = this.makeTexture();
+    const textureA = this.makeTexture(this.textureWidth, this.textureHeight);
+    const textureB = this.makeTexture(this.textureWidth, this.textureHeight);
     this.textures = [textureA, textureB];
     this.framebuffers = [this.makeFramebuffer(textureA), this.makeFramebuffer(textureB)];
     this.program = createProgram(gl, VERTEX, COPY_FRAGMENT);
@@ -107,7 +117,7 @@ export class WebGlNcaRuntime {
     this.vao = vao;
   }
 
-  private makeTexture(): WebGLTexture {
+  private makeTexture(width: number, height: number): WebGLTexture {
     const gl = this.gl;
     const texture = gl.createTexture();
     if (!texture) throw new Error('webgl2 nca: failed to create texture');
@@ -116,7 +126,7 @@ export class WebGlNcaRuntime {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, this.textureWidth, this.textureHeight, 0, gl.RGBA, gl.FLOAT, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, null);
     return texture;
   }
 
@@ -137,15 +147,33 @@ export class WebGlNcaRuntime {
   get telemetry(): WebGlNcaTelemetry { return this.telemetryState; }
   get currentTexture(): WebGLTexture { return this.textures[this.activeIndex]; }
 
-  seed(rgbaState: Float32Array): void {
+  seed(latentState: Float32Array): void {
     const gl = this.gl;
-    const capacity = this.textureWidth * this.textureHeight * 4;
-    if (rgbaState.length > capacity) throw new Error(`webgl2 nca: seed length ${rgbaState.length} exceeds capacity ${capacity}`);
-    const padded = new Float32Array(capacity);
-    padded.set(rgbaState);
+    const expected = this.nodeCount * this.checkpoint.latentChannels;
+    if (latentState.length !== expected) {
+      throw new Error(
+        `webgl2 nca: seed length ${latentState.length} must equal nodes × latentChannels (${expected})`,
+      );
+    }
+    const packed = packNodeChannels(
+      latentState,
+      this.checkpoint.latentChannels,
+      this.layout,
+      'state',
+    );
     for (const texture of this.textures) {
       gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.textureWidth, this.textureHeight, gl.RGBA, gl.FLOAT, padded);
+      gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0,
+        0,
+        0,
+        this.textureWidth,
+        this.textureHeight,
+        gl.RGBA,
+        gl.FLOAT,
+        packed,
+      );
     }
     this.activeIndex = 0;
     this.telemetryState = { steps: 0, lastStepMs: 0, maxStepMs: 0 };
@@ -157,11 +185,12 @@ export class WebGlNcaRuntime {
     const gl = this.gl;
     for (const index of indices) {
       if (!Number.isInteger(index) || index < 0 || index >= this.nodeCount) continue;
-      const x = index % this.textureWidth;
-      const y = Math.floor(index / this.textureWidth);
       const zero = new Float32Array(4);
       gl.bindTexture(gl.TEXTURE_2D, this.currentTexture);
-      gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, 1, 1, gl.RGBA, gl.FLOAT, zero);
+      for (let block = 0; block < this.layout.stateBlocks; block += 1) {
+        const [x, y] = atlasTexel(this.layout, index, block, 'state');
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, 1, 1, gl.RGBA, gl.FLOAT, zero);
+      }
     }
   }
 
