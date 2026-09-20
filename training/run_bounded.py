@@ -16,7 +16,12 @@ from vector_nca.core import (
     save_checkpoint,
     seed_everything,
 )
-from vector_nca.evaluation import evaluate_candidate, preview_sequence, write_preview_svg
+from vector_nca.evaluation import (
+    controlled_sensor_scenarios,
+    evaluate_candidate,
+    preview_sequence,
+    write_preview_svg,
+)
 
 
 def train_one(config: dict, phenotype_name: str, out_dir: Path) -> dict:
@@ -43,21 +48,63 @@ def train_one(config: dict, phenotype_name: str, out_dir: Path) -> dict:
     positions = fixture["positions"]
     lesion_mask = fixture["lesion_mask"]
 
+    neutral_sensors, positive_sensors, negative_sensors = controlled_sensor_scenarios(sensors)
+    field_margin = float(config["training"].get("field_response_margin", 0.05))
+    cross_penalty = float(config["training"].get("cross_response_penalty", 0.1))
+    recovery_pre_steps = max(1, unroll // 2)
+    recovery_steps = max(1, unroll - recovery_pre_steps)
+    lesion_gate = torch.ones_like(latent)
+    lesion_gate[lesion_mask] = 0.0
+
     for _ in range(train_steps):
         optimizer.zero_grad(set_to_none=True)
-        state = model.rollout(latent, sensors, unroll)
-        morphology = phenotype_loss(state, positions, target)
-        stability = (state - latent).pow(2).mean()
-        boundedness = torch.relu(state.abs() - 2.0).pow(2).mean()
-        positive = -(state[:, 0] * sensors[:, 0]).mean()
-        negative = (state[:, 1] * sensors[:, 1]).mean()
-        lesion = (state[lesion_mask] - latent[lesion_mask]).abs().mean()
+
+        neutral_state = model.rollout(latent, neutral_sensors, unroll)
+        positive_state = model.rollout(latent, positive_sensors, unroll)
+        negative_state = model.rollout(latent, negative_sensors, unroll)
+
+        morphology = phenotype_loss(neutral_state, positions, target)
+        stability = (neutral_state - latent).pow(2).mean()
+        boundedness = torch.stack(
+            [
+                torch.relu(neutral_state.abs() - 2.0).pow(2).mean(),
+                torch.relu(positive_state.abs() - 2.0).pow(2).mean(),
+                torch.relu(negative_state.abs() - 2.0).pow(2).mean(),
+            ]
+        ).mean()
+
+        positive_activation = (positive_state[:, 0] - neutral_state[:, 0]).mean()
+        negative_activation = (negative_state[:, 1] - neutral_state[:, 1]).mean()
+        cross_response = (
+            (positive_state[:, 1] - neutral_state[:, 1]).abs().mean()
+            + (negative_state[:, 0] - neutral_state[:, 0]).abs().mean()
+        )
+        field_response = (
+            torch.relu(neutral_state.new_tensor(field_margin) - positive_activation)
+            + torch.relu(neutral_state.new_tensor(field_margin) - negative_activation)
+            + cross_penalty * cross_response
+        )
+
+        pre_lesion = model.rollout(latent, neutral_sensors, recovery_pre_steps)
+        with torch.no_grad():
+            intact_target = model.rollout(
+                pre_lesion.detach(),
+                neutral_sensors,
+                recovery_steps,
+            )
+        recovered = model.rollout(
+            pre_lesion * lesion_gate,
+            neutral_sensors,
+            recovery_steps,
+        )
+        recovery = (recovered[lesion_mask] - intact_target[lesion_mask]).pow(2).mean()
+
         weights = config["loss_weights"]
         loss = (
             float(weights["morphology"]) * morphology
             + float(weights["stability"]) * stability
-            + float(weights["field_response"]) * (positive + negative)
-            + float(weights["recovery"]) * lesion
+            + float(weights["field_response"]) * field_response
+            + float(weights["recovery"]) * recovery
             + float(weights["boundedness"]) * boundedness
         )
         loss.backward()
@@ -100,6 +147,7 @@ def train_one(config: dict, phenotype_name: str, out_dir: Path) -> dict:
         "metrics": metrics,
         "baseline_metrics": baseline_metrics,
         "delta_vs_untrained": deltas,
+        "training_objective": "controlled-field-lesion-v2",
         "evaluation_protocol": "controlled-field-lesion-v2",
         "preview_json": preview_json.name,
         "preview_svg": preview_svg.name,
