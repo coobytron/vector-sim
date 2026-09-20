@@ -1,5 +1,5 @@
 import type { LoadedCheckpoint } from './checkpoint/types';
-import { atlasTexel, createWebGlNcaAtlasLayout, packNodeChannels } from './webgl2Layout';
+import { atlasTexel, createWebGlNcaAtlasLayout, packNodeChannels, unpackNodeChannels } from './webgl2Layout';
 import type { WebGlNcaAtlasLayout } from './webgl2Layout';
 import {
   buildVectorNcaMlpFragmentShader,
@@ -363,6 +363,31 @@ export class WebGlNcaRuntime {
 
   singleStep(): void {
     this.step(true);
+  }
+
+  /**
+   * Explicit synchronous readback for validation/parity tooling only.
+   * Normal simulation/rendering must consume GPU state without calling this.
+   */
+  readStateForValidation(): Float32Array {
+    const gl = this.gl;
+    const packed = new Float32Array(this.textureWidth * this.textureHeight * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffers[this.activeIndex]);
+    gl.readPixels(
+      0,
+      0,
+      this.textureWidth,
+      this.textureHeight,
+      gl.RGBA,
+      gl.FLOAT,
+      packed,
+    );
+    return unpackNodeChannels(
+      packed,
+      this.checkpoint.latentChannels,
+      this.layout,
+      'state',
+    );
   }
 
   dispose(): void {
