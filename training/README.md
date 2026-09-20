@@ -43,7 +43,9 @@ PYTHONPATH=training python training/run_bounded.py \
 
 Each phenotype emits a checkpoint, manifest, model card, evaluation report, deterministic preview JSON, and a source-stable SVG state-evolution strip. The default P05b config evaluates for substantially longer than the training unroll to expose divergence rather than hiding it inside a short optimization horizon.
 
-P05b evaluation uses controlled scenarios rather than the training fixture verbatim: neutral, positive-only, and negative-only field inputs are rolled out separately. Recovery is measured by actually zeroing the configured lesion region after a pre-roll, then comparing the recovered state against an intact counterfactual at the same final tick. `damage_recovery_delta` is positive only when the final lesion error is smaller than the immediate damage; `damage_recovery_error` reports the remaining absolute error.
+P05b training and evaluation use controlled scenarios rather than the training fixture verbatim: neutral, positive-only, and negative-only field inputs are rolled out separately. Training uses a response margin plus cross-channel penalty so it cannot satisfy the field objective merely by drifting all channels together. The recovery objective applies the configured lesion after a pre-roll and trains the damaged branch toward an intact counterfactual at the same final tick.
+
+P05b evaluation uses the same separated field scenarios. Recovery is measured by actually zeroing the configured lesion region after a pre-roll, then comparing the recovered state against an intact counterfactual at the same final tick. `damage_recovery_delta` is positive only when the final lesion error is smaller than the immediate damage; `damage_recovery_error` reports the remaining absolute error.
 
 The checkpoint manifest now records `update_rate` explicitly so P06 inference can reconstruct execution semantics from exported metadata instead of relying on a runtime default.
 
