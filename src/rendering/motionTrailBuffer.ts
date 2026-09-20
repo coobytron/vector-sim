@@ -67,9 +67,11 @@ export class MotionTrailBuffer {
       if (organism >= this.organismCount) continue;
       const read = node * 3;
       const write = organism * 3;
-      this.centroids[write] += nodePositions[read] ?? 0;
-      this.centroids[write + 1] += nodePositions[read + 1] ?? 0;
-      this.centroids[write + 2] += nodePositions[read + 2] ?? 0;
+      this.centroids[write] = (this.centroids[write] ?? 0) + (nodePositions[read] ?? 0);
+      this.centroids[write + 1] =
+        (this.centroids[write + 1] ?? 0) + (nodePositions[read + 1] ?? 0);
+      this.centroids[write + 2] =
+        (this.centroids[write + 2] ?? 0) + (nodePositions[read + 2] ?? 0);
       this.centroidCounts[organism] = (this.centroidCounts[organism] ?? 0) + 1;
     }
 
@@ -77,9 +79,9 @@ export class MotionTrailBuffer {
       const count = this.centroidCounts[organism] ?? 0;
       if (count === 0) continue;
       const offset = organism * 3;
-      this.centroids[offset] /= count;
-      this.centroids[offset + 1] /= count;
-      this.centroids[offset + 2] /= count;
+      this.centroids[offset] = (this.centroids[offset] ?? 0) / count;
+      this.centroids[offset + 1] = (this.centroids[offset + 1] ?? 0) / count;
+      this.centroids[offset + 2] = (this.centroids[offset + 2] ?? 0) / count;
     }
 
     if (tick !== this.lastTick) {
