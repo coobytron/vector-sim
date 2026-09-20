@@ -158,6 +158,27 @@ export class VectorRenderer {
       roughness: 0.48,
       metalness: 0.02,
     });
+    this.nodeMaterial.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nattribute float instanceOpacity;\nvarying float vInstanceOpacity;',
+        )
+        .replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nvInstanceOpacity = instanceOpacity;',
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nvarying float vInstanceOpacity;',
+        )
+        .replace(
+          'vec4 diffuseColor = vec4( diffuse, opacity );',
+          'vec4 diffuseColor = vec4( diffuse, opacity * vInstanceOpacity );',
+        );
+    };
+    this.nodeMaterial.customProgramCacheKey = () => 'vector-node-instance-opacity-v1';
     this.nodes = new THREE.InstancedMesh(nodeGeometry, this.nodeMaterial, snapshot.active.length);
     this.nodes.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.nodes.frustumCulled = false;
@@ -186,6 +207,12 @@ export class VectorRenderer {
     this.nodeEmissionColors = new Float32Array(snapshot.active.length * 3);
     this.nodeEmissionStrengths = new Float32Array(snapshot.active.length);
     this.packer = new VectorBufferPacker(snapshot);
+    this.nodes.geometry.setAttribute(
+      'instanceOpacity',
+      new THREE.InstancedBufferAttribute(this.packer.buffers.nodeOpacities, 1).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
     this.edgeGeometry = new THREE.BufferGeometry();
     this.edgeGeometry.setAttribute(
       'position',
@@ -351,6 +378,7 @@ export class VectorRenderer {
     }
     this.nodes.instanceMatrix.needsUpdate = true;
     if (this.nodes.instanceColor) this.nodes.instanceColor.needsUpdate = true;
+    this.nodes.geometry.getAttribute('instanceOpacity').needsUpdate = true;
     this.emissionNodes.instanceMatrix.needsUpdate = true;
     if (this.emissionNodes.instanceColor) this.emissionNodes.instanceColor.needsUpdate = true;
 
@@ -454,6 +482,7 @@ export class VectorRenderer {
     // ribbons drop into the 0.12-0.35 band. See docs/ART-DIRECTION.md.
     this.nodeMaterial.wireframe = technical;
     this.nodeMaterial.transparent = ghost;
+    this.nodeMaterial.alphaHash = !ghost;
     this.nodeMaterial.opacity = ghost ? GHOST_PRIMARY_OPACITY : technical ? 0.86 : 1;
     this.nodeMaterial.depthWrite = !ghost;
     this.nodeMaterial.roughness = technical ? 0.72 : ghost ? 0.24 : 0.48;
