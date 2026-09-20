@@ -3,6 +3,7 @@ import {
   parseBenchmarkDurationSeconds,
 } from '../benchmark/browserBenchmark';
 import { runGpuMicrobenchmarks } from '../benchmark/gpuMicrobenchmarks';
+import { resolveHomeRoute } from '../environments/homeRoute';
 import {
   parseCaptureDistance,
   parseCaptureState,
@@ -40,6 +41,7 @@ export function createApp(root: HTMLElement): VectorSimApp {
   const captureDistance = mode === 'organisms'
     ? parseCaptureDistance(parameters.get('distance'))
     : undefined;
+  const homeRoute = mode === 'home' ? resolveHomeRoute(parameters) : undefined;
   const shell = createShell(
     root,
     tier.name,
@@ -73,6 +75,8 @@ export function createApp(root: HTMLElement): VectorSimApp {
     look,
     captureState,
     captureDistance,
+    homePreset: homeRoute?.preset,
+    homeCamera: homeRoute?.camera,
   });
   const stepper = new FixedStepper(1 / 30, 4);
   const benchmark = benchmarkRequested
@@ -98,7 +102,9 @@ export function createApp(root: HTMLElement): VectorSimApp {
   if (paused) shell.pauseButton.textContent = 'Resume';
   const captureStatus = mode === 'organisms'
     ? ` · ${captureState ?? 'live state'} · seed ${seed} · ${ncaMode} NCA`
-    : '';
+    : mode === 'home' && homeRoute
+      ? ` · ${homeRoute.preset.displayName} · ${homeRoute.camera.role}`
+      : '';
   shell.status.textContent = `${tier.name} · ${look.label}${captureStatus} · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2'}`;
   shell.pauseButton.addEventListener('click', () => {
     paused = !paused;
