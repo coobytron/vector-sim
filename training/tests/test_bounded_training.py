@@ -35,6 +35,7 @@ def test_all_phenotypes_emit_evaluation_reports(tmp_path):
         assert report["phenotype"] == phenotype
         assert report["evaluation_steps"] == 8
         assert report["metrics"]["nan_rate"] == 0.0
+        assert report["training_objective"] == "controlled-field-lesion-v2"
         assert report["evaluation_protocol"] == "controlled-field-lesion-v2"
         assert report["metrics"]["positive_field_response"] >= 0.0
         assert report["metrics"]["negative_field_response"] >= 0.0
