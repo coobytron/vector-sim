@@ -5,7 +5,6 @@ import {
   buildVectorNcaMlpFragmentShader,
   packVectorNcaWeights,
   type PackedFloatTexture,
-  type VectorNcaWeightTextures,
 } from './webgl2Mlp';
 
 export interface WebGlNcaRuntimeOptions {
