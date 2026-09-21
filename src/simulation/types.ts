@@ -1,4 +1,6 @@
 import type { MorphologyTopology } from '../organisms/types';
+import type { FieldProvider } from '../environments/fields';
+import type { SimulationLifecycleSnapshot } from './fieldLifecycle';
 
 export type QualityTierName = 'mobile' | 'desktop';
 
@@ -39,6 +41,8 @@ export interface SimulationConfig {
   hiddenChannels?: number;
   learnedWidth?: number;
   ncaMode?: 'live' | 'frozen';
+  /** Optional shared ecology; absent for the original benchmark/lab fixture. */
+  fieldProvider?: FieldProvider;
 }
 
 export interface SimulationSnapshot {
@@ -54,6 +58,7 @@ export interface SimulationSnapshot {
   previousHealth: Float32Array;
   edges: Uint32Array;
   topology: MorphologyTopology;
+  lifecycle?: SimulationLifecycleSnapshot;
 }
 
 export interface FrameAdvance {

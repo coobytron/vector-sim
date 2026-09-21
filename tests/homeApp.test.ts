@@ -76,7 +76,9 @@ describe('Home app route integration', () => {
     expect(vi.mocked(createShell).mock.calls[0]![7]?.preset).toBe(options.homePreset);
     expect(vi.mocked(createShell).mock.calls[0]![7]?.camera).toBe(options.homeCamera);
     expect(vi.mocked(HeadlessSimulation).mock.calls[0]![0].seed).toBe(4102);
+    expect(vi.mocked(HeadlessSimulation).mock.calls[0]![0].fieldProvider?.manifest.id).toBe('spectral-home/domestic-section');
     expect(vi.mocked(HeadlessSimulation).mock.results[0]!.value.tick).toBe(12);
+    expect(vi.mocked(VectorRenderer).mock.calls[0]![2].lifecycle?.presentations.size).toBe(8);
     expect(shell.pauseButton.textContent).toBe('Resume');
     app.dispose();
   });
@@ -119,6 +121,8 @@ describe('Home app route integration', () => {
     const app = start('?organisms=1&homePreset=tabletop-habitat&homeCamera=macro&tick=0');
     expect(vi.mocked(VectorRenderer).mock.calls[0]![3].homePreset).toBeUndefined();
     expect(vi.mocked(HeadlessSimulation).mock.calls[0]![0].seed).toBe(0x5350_4543);
+    expect(vi.mocked(HeadlessSimulation).mock.calls[0]![0].fieldProvider).toBeUndefined();
+    expect(vi.mocked(VectorRenderer).mock.calls[0]![2].lifecycle).toBeUndefined();
     app.dispose();
   });
 });

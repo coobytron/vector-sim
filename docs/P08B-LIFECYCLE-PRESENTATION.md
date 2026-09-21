@@ -105,3 +105,37 @@ npm run qa
   them to drive emission on specific *nodes* needs the per-cell sampling that
   P08a's own deferred list already calls out.
 - **Trails and per-cell alpha.** Both are renderer features, not mapping work.
+## Home runtime integration
+
+Home supplies `createHomePresetFieldProvider(selectedPreset)` to the generic
+`HeadlessSimulation.fieldProvider` option. `FieldLifecycle` samples once per
+organism at the active-node centroid, advances the existing 30 Hz lifecycle core,
+and derives the existing P08b presentation state once per tick. It contains no
+environment IDs or Home branches. The centroid is a coarse organism-level sensor;
+per-cell contact sensing and authored spawn placement remain separate work.
+
+For a provider-backed run, the lifecycle core is the sole metabolic authority:
+its energy/viability values feed the reference NCA and the per-cell buffers. The
+old radial-field metabolism runs only when no provider is supplied (the original
+Organism Lab/headless benchmark fixture). Death is terminal: positions and latent
+state stop updating, while presentation continues through the existing death fade.
+Provider-backed steps reject any cadence other than 1/30 second before mutation.
+
+`SimulationSnapshot.lifecycle` exposes states and a presentation map keyed by the
+same organism index as the morphology. Its event array contains only the current
+tick; the lifecycle state retains transition timing. The renderer consumes that
+map through `VectorPackOptions.presentations`, preserving explicit capture-state
+overrides. As with the existing typed snapshot buffers, these containers are
+reused and represent the current tick, not a historical deep copy. State hashing
+includes lifecycle state and source/event metadata for deterministic receipts.
+
+The shared provider sample optionally carries `channelContexts`: signed sources
+keep energy contacts separate from danger contacts, and composites preserve them.
+Intake/damage events use their channel's causal context. Providers without this
+optional metadata retain the prior aggregate-context fallback.
+
+Home source cues use a fixed pair of pooled line segments per organism, anchored
+at actual lifecycle source contacts and the sampled organism centroid. They stay
+off without intake/damage events; no periodic scripted source effects remain.
+These are initial causal transfer cues, pending browser/creative review. They do
+not demonstrate learned navigation, structural regeneration, or trained NCA quality.

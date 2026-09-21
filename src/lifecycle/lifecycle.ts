@@ -228,6 +228,8 @@ export function createLifecycleSystem(options: LifecycleSystemOptions): Lifecycl
     }
 
     const sampled = options.provider.sample(organism.position, timeSeconds);
+    const energyContext = sampled.channelContexts?.energy ?? sampled;
+    const dangerContext = sampled.channelContexts?.danger ?? sampled;
     const sample: LifecycleFieldSample = {
       energy: readChannel(sampled.scalars, 'energy'),
       danger: readChannel(sampled.scalars, 'danger'),
@@ -252,8 +254,8 @@ export function createLifecycleSystem(options: LifecycleSystemOptions): Lifecycl
         kind: 'intake',
         amount: gained,
         channelValue: sample.energy,
-        sourceIds: sample.sourceIds,
-        contacts: sample.contacts,
+        sourceIds: energyContext.sourceIds,
+        contacts: energyContext.contacts,
       });
     }
 
@@ -265,8 +267,8 @@ export function createLifecycleSystem(options: LifecycleSystemOptions): Lifecycl
         kind: 'damage',
         amount: damageAmount,
         channelValue: sample.danger,
-        sourceIds: sample.sourceIds,
-        contacts: sample.contacts,
+        sourceIds: dangerContext.sourceIds,
+        contacts: dangerContext.contacts,
       });
     }
 

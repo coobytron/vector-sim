@@ -1,128 +1,76 @@
 import * as THREE from 'three';
-import { lifeDeathToWavelength, spectralEmissionLinear, type Rgb } from '../spectral/color';
+import type { PresentationFocus } from '../organisms/presentation';
+import type { SimulationLifecycleSnapshot } from '../simulation/fieldLifecycle';
+import { spectralEmissionLinear } from '../spectral/color';
 import { sampleSpectralEvent } from '../spectral/events';
 import type { SpectralLookProfile } from '../spectral/looks';
+import type { Vec3 } from '../environments/fields';
 
-function colorFromLinear(color: Rgb): THREE.Color {
-  return new THREE.Color().setRGB(color.r, color.g, color.b, THREE.LinearSRGBColorSpace);
-}
+/** Pooled contact-to-organism cues. Only real lifecycle intake/damage can light them. */
+export class HomeSpectralEmitters {
+  readonly group = new THREE.Group();
+  private readonly positions: Float32Array;
+  private readonly colors: Float32Array;
+  private readonly geometry = new THREE.BufferGeometry();
 
-function pulseDistance(first: number, second: number): number {
-  const direct = Math.abs(first - second);
-  return Math.min(direct, 1 - direct);
-}
-
-function updateTravelingColors(
-  attribute: THREE.BufferAttribute,
-  phase: number,
-  wavelengthAt: (amount: number) => number,
-  intensity: number,
-): void {
-  const count = attribute.count;
-  for (let index = 0; index < count; index += 1) {
-    const amount = count <= 1 ? 0 : index / (count - 1);
-    const distance = pulseDistance(amount, phase);
-    const pulse = Math.exp(-(distance * distance) / 0.008);
-    const color = spectralEmissionLinear(wavelengthAt(amount), intensity * pulse);
-    attribute.setXYZ(index, color.r, color.g, color.b);
-  }
-  attribute.needsUpdate = true;
-}
-
-function makeSpectralLine(points: THREE.Vector3[]): THREE.Line {
-  const geometry = new THREE.BufferGeometry().setFromPoints(points);
-  geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(points.length * 3), 3));
-  return new THREE.Line(
-    geometry,
-    new THREE.LineBasicMaterial({
+  constructor(private look: SpectralLookProfile, private readonly capacity: number) {
+    this.positions = new Float32Array(capacity * 2 * 2 * 3);
+    this.colors = new Float32Array(this.positions.length);
+    this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3).setUsage(THREE.DynamicDrawUsage));
+    this.geometry.setAttribute('color', new THREE.BufferAttribute(this.colors, 3).setUsage(THREE.DynamicDrawUsage));
+    const lines = new THREE.LineSegments(this.geometry, new THREE.LineBasicMaterial({
       vertexColors: true,
       transparent: true,
       opacity: 1,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       toneMapped: true,
-    }),
-  );
-}
-
-export class HomeSpectralEmitters {
-  readonly group = new THREE.Group();
-  private readonly feedSourceMaterial = new THREE.MeshBasicMaterial({ toneMapped: true });
-  private readonly damageSourceMaterial = new THREE.MeshBasicMaterial({ toneMapped: true });
-  private readonly feedPath: THREE.Line;
-  private readonly damagePath: THREE.Line;
-  private look: SpectralLookProfile;
-
-  constructor(look: SpectralLookProfile) {
-    this.look = look;
+    }));
+    lines.frustumCulled = false;
+    lines.name = 'lifecycle-contact-transfers';
     this.group.name = 'home-spectral-emitters';
-
-    const feedSource = new THREE.Mesh(
-      new THREE.BoxGeometry(0.86, 0.04, 0.18),
-      this.feedSourceMaterial,
-    );
-    feedSource.position.set(2.7, 0.035, 0.55);
-    feedSource.name = 'spectral-food-threshold';
-    this.group.add(feedSource);
-
-    const feedCurve = new THREE.QuadraticBezierCurve3(
-      new THREE.Vector3(2.7, 0.08, 0.55),
-      new THREE.Vector3(2.05, 1.15, 0.35),
-      new THREE.Vector3(1.15, 0.72, 0.2),
-    );
-    this.feedPath = makeSpectralLine(feedCurve.getPoints(64));
-    this.feedPath.name = 'spectral-feed-transfer-path';
-    this.group.add(this.feedPath);
-
-    const damagePoints = [
-      new THREE.Vector3(-3.035, 0.35, -0.6),
-      new THREE.Vector3(-3.035, 0.8, -0.35),
-      new THREE.Vector3(-3.035, 1.2, -0.7),
-      new THREE.Vector3(-3.035, 1.6, -0.45),
-    ];
-    this.damagePath = makeSpectralLine(damagePoints);
-    this.damagePath.name = 'spectral-damage-fault';
-    this.group.add(this.damagePath);
-
-    const damageSource = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.075, 0),
-      this.damageSourceMaterial,
-    );
-    damageSource.position.copy(damagePoints[1] ?? new THREE.Vector3());
-    damageSource.name = 'spectral-damage-contact';
-    this.group.add(damageSource);
+    this.group.visible = false;
+    this.group.add(lines);
   }
 
   setLook(look: SpectralLookProfile): void {
     this.look = look;
   }
 
-  update(tick: number, alpha: number): void {
-    const phase = ((tick + alpha) / 96) % 1;
-    const feed = sampleSpectralEvent('feeding', phase);
-    const damage = sampleSpectralEvent('damage', phase * 1.7);
-    const feedColor = spectralEmissionLinear(
-      feed.wavelengthNm,
-      2.6 * feed.intensityScale * this.look.emissionScale,
-    );
-    const damageColor = spectralEmissionLinear(
-      damage.wavelengthNm,
-      2.9 * damage.intensityScale * this.look.emissionScale,
-    );
-    this.feedSourceMaterial.color.copy(colorFromLinear(feedColor));
-    this.damageSourceMaterial.color.copy(colorFromLinear(damageColor));
+  update(lifecycle: SimulationLifecycleSnapshot | undefined): void {
+    this.positions.fill(0);
+    this.colors.fill(0);
+    let visible = false;
+    if (lifecycle) {
+      for (let index = 0; index < Math.min(this.capacity, lifecycle.states.length); index += 1) {
+        const state = lifecycle.states[index]!;
+        const presentation = lifecycle.presentations.get(index);
+        if (!presentation || state.status === 'dead') continue;
+        visible = this.write(index * 12, presentation.feedFocus, state.position, 'feeding', presentation.eventPhase, presentation.emissionCeiling) || visible;
+        visible = this.write(index * 12 + 6, presentation.damageFocus, state.position, 'damage', presentation.eventPhase, presentation.emissionCeiling) || visible;
+      }
+    }
+    this.geometry.getAttribute('position').needsUpdate = true;
+    this.geometry.getAttribute('color').needsUpdate = true;
+    this.group.visible = visible;
+  }
 
-    updateTravelingColors(
-      this.feedPath.geometry.getAttribute('color') as THREE.BufferAttribute,
-      phase,
-      (amount) => lifeDeathToWavelength((1 - amount) * 0.06),
-      3 * this.look.emissionScale,
-    );
-    updateTravelingColors(
-      this.damagePath.geometry.getAttribute('color') as THREE.BufferAttribute,
-      1 - phase,
-      (amount) => lifeDeathToWavelength(0.8 + amount * 0.16),
-      3.4 * this.look.emissionScale,
-    );
+  private write(offset: number, focus: PresentationFocus | null, target: Vec3, event: 'feeding' | 'damage', phase: number, ceiling: number): boolean {
+    if (!focus?.point || focus.contribution <= 0 || ceiling <= 0) return false;
+    const sample = sampleSpectralEvent(event, phase);
+    const color = spectralEmissionLinear(sample.wavelengthNm,
+      3 * sample.intensityScale * focus.contribution * ceiling * this.look.emissionScale);
+    this.positions[offset] = focus.point.x;
+    this.positions[offset + 1] = focus.point.y;
+    this.positions[offset + 2] = focus.point.z;
+    this.positions[offset + 3] = target.x;
+    this.positions[offset + 4] = target.y;
+    this.positions[offset + 5] = target.z;
+    for (let vertex = 0; vertex < 2; vertex += 1) {
+      this.colors[offset + vertex * 3] = color.r;
+      this.colors[offset + vertex * 3 + 1] = color.g;
+      this.colors[offset + vertex * 3 + 2] = color.b;
+    }
+    return true;
   }
 }
