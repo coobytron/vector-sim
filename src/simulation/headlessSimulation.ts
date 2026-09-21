@@ -4,6 +4,8 @@ import type { MorphologyTopology } from '../organisms/types';
 import { counterRandom, SeededRandom } from './prng';
 import { hashState } from './hashState';
 import type { SimulationConfig, SimulationSnapshot } from './types';
+import { LIFECYCLE_TICK_SECONDS } from '../lifecycle';
+import { FieldLifecycle } from './fieldLifecycle';
 
 const POSITION_COMPONENTS = 3;
 const MAX_GRAPH_DEGREE = 8;
@@ -47,6 +49,7 @@ export class HeadlessSimulation {
   private readonly adjacency: Uint32Array;
   private readonly degree: Uint8Array;
   private tickValue = 0;
+  private readonly lifecycle?: FieldLifecycle;
 
   constructor(readonly config: SimulationConfig) {
     this.channels = config.hiddenChannels ?? 24;
@@ -74,6 +77,9 @@ export class HeadlessSimulation {
     this.latentDelta = new Float32Array(this.channels);
     this.acceleration = new Float32Array(3);
     this.initialize();
+    if (config.fieldProvider) {
+      this.lifecycle = new FieldLifecycle(config.fieldProvider, this.topology, this.positions, this.active);
+    }
   }
 
   get tick(): number {
@@ -94,12 +100,17 @@ export class HeadlessSimulation {
       previousHealth: this.previousHealth,
       edges: this.edges,
       topology: this.topology,
+      lifecycle: this.lifecycle?.snapshot,
     };
   }
 
   step(dt = 1 / 30): void {
+    if (this.lifecycle && dt !== LIFECYCLE_TICK_SECONDS) {
+      throw new RangeError('Field-driven simulation requires the fixed 1/30-second lifecycle step');
+    }
     this.previousPositions.set(this.positions);
     this.previousHealth.set(this.health);
+    this.lifecycle?.step(this.positions, this.active);
     this.aggregateNeighbors();
 
     const slots = this.config.tier.slotsPerOrganism;
@@ -108,8 +119,13 @@ export class HeadlessSimulation {
       const latentOffset = cell * this.channels;
       const organism = Math.floor(cell / slots);
       const localCell = cell % slots;
+      const lifecycleState = this.lifecycle?.snapshot.states[organism];
+      if (lifecycleState) {
+        this.energy[cell] = lifecycleState.energy;
+        this.health[cell] = lifecycleState.viability;
+      }
 
-      if (this.active[cell] !== 1) {
+      if (this.active[cell] !== 1 || lifecycleState?.status === 'dead') {
         this.copyCell(cell);
         continue;
       }
@@ -117,8 +133,8 @@ export class HeadlessSimulation {
       const x = this.positions[positionOffset] ?? 0;
       const y = this.positions[positionOffset + 1] ?? 0;
       const z = this.positions[positionOffset + 2] ?? 0;
-      const food = radialField(x, y, z, 1.7, 0.75, 0.4);
-      const kill = radialField(x, y, z, -1.7, 1.0, -0.4);
+      const food = lifecycleState?.sample.energy ?? radialField(x, y, z, 1.7, 0.75, 0.4);
+      const kill = lifecycleState?.sample.danger ?? radialField(x, y, z, -1.7, 1.0, -0.4);
       const eligible = counterRandom(this.config.seed, organism, localCell, this.tickValue) < 0.5;
 
       if (eligible && (this.config.ncaMode ?? 'live') === 'live') {
@@ -144,13 +160,16 @@ export class HeadlessSimulation {
         );
       }
 
-      const idleDrain = 0.012;
-      this.energy[cell] = clamp01((this.energy[cell] ?? 0) + 0.2 * food * dt - idleDrain * dt);
-      const repairGate = clamp01(((this.latent[latentOffset + 7] ?? 0) + 1) * 0.5);
-      const repair = (this.energy[cell] ?? 0) > 0.35 && kill < 0.05
-        ? 0.08 * repairGate * dt
-        : 0;
-      this.health[cell] = clamp01((this.health[cell] ?? 0) - 0.35 * kill * dt + repair);
+      if (!lifecycleState) {
+        // Preserve the original P02/P04 reference fixture for lab/benchmark comparisons.
+        const idleDrain = 0.012;
+        this.energy[cell] = clamp01((this.energy[cell] ?? 0) + 0.2 * food * dt - idleDrain * dt);
+        const repairGate = clamp01(((this.latent[latentOffset + 7] ?? 0) + 1) * 0.5);
+        const repair = (this.energy[cell] ?? 0) > 0.35 && kill < 0.05
+          ? 0.08 * repairGate * dt
+          : 0;
+        this.health[cell] = clamp01((this.health[cell] ?? 0) - 0.35 * kill * dt + repair);
+      }
 
       for (let axis = 0; axis < POSITION_COMPONENTS; axis += 1) {
         const offset = positionOffset + axis;
@@ -195,6 +214,7 @@ export class HeadlessSimulation {
         this.health,
         this.edges,
         this.topology.nodeParent,
+        ...(this.lifecycle ? [new TextEncoder().encode(JSON.stringify(this.lifecycle.snapshot))] : []),
       ],
       this.tickValue,
     );

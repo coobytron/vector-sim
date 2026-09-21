@@ -20,6 +20,7 @@ import { createShell, showFallback } from '../ui/shell';
 import { createSpectralPanel } from '../ui/spectralPanel';
 import { selectSpectralLook } from '../spectral/looks';
 import { resolveHomeRoute, writeHomeRoute } from '../environments/homeRoute';
+import { createHomePresetFieldProvider } from '../environments/homePresets';
 
 export interface VectorSimApp {
   dispose(): void;
@@ -123,7 +124,10 @@ export function createApp(root: HTMLElement): VectorSimApp {
     return { dispose: () => undefined };
   }
 
-  const simulation = new HeadlessSimulation({ tier, seed, ncaMode });
+  const simulation = new HeadlessSimulation({
+    tier, seed, ncaMode,
+    fieldProvider: homeRoute ? createHomePresetFieldProvider(homeRoute.preset) : undefined,
+  });
   if (captureTick !== undefined) {
     for (let tick = 0; tick < captureTick; tick += 1) simulation.step();
   }

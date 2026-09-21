@@ -24,6 +24,11 @@ export interface FieldSample {
   readonly vectors: Readonly<Record<string, Vec3>>;
   readonly sourceIds: readonly string[];
   readonly contacts: readonly FieldContact[];
+  /** Optional causal context per channel, so opposing effects retain their own contacts. */
+  readonly channelContexts?: Readonly<Record<string, {
+    readonly sourceIds: readonly string[];
+    readonly contacts: readonly FieldContact[];
+  }>>;
 }
 
 export interface FieldProvider {
@@ -61,6 +66,12 @@ function freezeSample(sample: FieldSample): FieldSample {
     vectors: Object.freeze({ ...sample.vectors }),
     sourceIds: Object.freeze([...sample.sourceIds].sort()),
     contacts: Object.freeze([...sample.contacts].sort(compareContact)),
+    ...(sample.channelContexts ? {
+      channelContexts: Object.freeze(Object.fromEntries(Object.entries(sample.channelContexts).map(([id, context]) => [id, Object.freeze({
+        sourceIds: Object.freeze([...context.sourceIds].sort()),
+        contacts: Object.freeze([...context.contacts].sort(compareContact)),
+      })]))),
+    } : {}),
   });
 }
 
@@ -96,6 +107,10 @@ export function createSignedFieldProvider(id: string, sources: readonly EffectSo
       vectors: {},
       sourceIds: sample.contributingSourceIds,
       contacts,
+      channelContexts: {
+        energy: { sourceIds: sample.foodSourceIds, contacts: sample.foodContact ? [sample.foodContact] : [] },
+        danger: { sourceIds: sample.killSourceIds, contacts: sample.killContact ? [sample.killContact] : [] },
+      },
     };
   });
 }
@@ -147,13 +162,15 @@ export function createCompositeFieldProvider(id: string, providers: readonly Fie
     const vectors: Record<string, Vec3> = {};
     const sourceIds: string[] = [];
     const contacts: FieldContact[] = [];
+    const channelContexts: NonNullable<FieldSample['channelContexts']> = {};
     for (const provider of ordered) {
       const sample = provider.sample(point, time);
       Object.assign(scalars, sample.scalars);
       Object.assign(vectors, sample.vectors);
       sourceIds.push(...sample.sourceIds);
       contacts.push(...sample.contacts);
+      Object.assign(channelContexts, sample.channelContexts);
     }
-    return { scalars, vectors, sourceIds, contacts };
+    return { scalars, vectors, sourceIds, contacts, channelContexts };
   });
 }

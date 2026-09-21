@@ -100,6 +100,13 @@ advances to a reproducible simulation tick and starts paused for capture. Camera
 changes preserve the current simulation; preset changes reload the scene while
 preserving other URL options. Organism Lab and Calibration keep their own controls.
 
-These Home routes expose the environment shell and existing reference simulation.
-Selected-checkpoint execution, manifest-driven live organism ecology, and creative
-approval remain tracked separately in #31, #42, #50, and #51.
+Home now samples the selected manifest's energy/danger fields at each organism's
+active-node centroid. The shared lifecycle core owns metabolism and death, and its
+presentation mapping drives organism state, opacity, trails, and source-contact
+cues. Source cues remain off without a causal intake/damage event. Changing a
+source's signed strength in manifest data changes its effect without organism code.
+
+Motion and morphology still use the reference NCA, not a selected trained
+checkpoint. Authored spawn placement, shelter policy, trained structural recovery,
+and creative approval remain tracked in #31, #42, #50, and #51. Organism Lab retains
+its original deterministic reference fixture and explicit capture overrides.

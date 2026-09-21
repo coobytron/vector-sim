@@ -25,7 +25,7 @@ import { MotionTrailBuffer } from './motionTrailBuffer';
 import { SpectralCalibrationScene } from './spectralCalibrationScene';
 import { SpectralPostProcessor } from './spectralPostProcessor';
 import { topologyOverlayVisible } from './presentationPolicy';
-import { VectorBufferPacker } from './vectorBufferPacker';
+import { VectorBufferPacker, type VectorPackOptions } from './vectorBufferPacker';
 
 export interface RenderMetrics {
   calls: number;
@@ -87,7 +87,7 @@ export class VectorRenderer {
   private readonly calibration?: SpectralCalibrationScene;
   private readonly mode: RenderMode;
   private readonly fixedLod?: MorphologyLod;
-  private readonly packOptions: { lod: MorphologyLod; stateOverride?: OrganismVisualState } = {
+  private readonly packOptions: VectorPackOptions = {
     lod: 'macro',
   };
   private look: SpectralLookProfile;
@@ -161,7 +161,7 @@ export class VectorRenderer {
       this.homeEnvironment = createHomeEnvironment(options.homePreset);
       applyHomeEnvironmentLook(this.homeEnvironment, options.look.name);
       this.scene.add(this.homeEnvironment);
-      this.homeEmitters = new HomeSpectralEmitters(options.look);
+      this.homeEmitters = new HomeSpectralEmitters(options.look, snapshot.topology.organisms.length);
       this.scene.add(this.homeEmitters.group);
     } else {
       const stage = new THREE.Mesh(
@@ -393,6 +393,7 @@ export class VectorRenderer {
   update(snapshot: SimulationSnapshot, alpha: number): RenderMetrics {
     const cameraDistance = this.camera.position.distanceTo(this.controls.target);
     this.packOptions.lod = this.fixedLod ?? selectMorphologyLod(cameraDistance, this.tier);
+    this.packOptions.presentations = snapshot.lifecycle?.presentations;
     const buffers = this.packer.update(snapshot, alpha, this.packOptions);
     this.motionTrails.update(
       snapshot.tick,
@@ -470,7 +471,7 @@ export class VectorRenderer {
     faceAttribute.needsUpdate = true;
     this.faceGeometry.computeVertexNormals();
 
-    this.homeEmitters?.update(snapshot.tick, alpha);
+    this.homeEmitters?.update(snapshot.lifecycle);
     this.calibration?.update(snapshot.tick, alpha);
     this.controls.update();
     this.postProcessor.render(1 / Math.max(1, this.tier.targetFps));
