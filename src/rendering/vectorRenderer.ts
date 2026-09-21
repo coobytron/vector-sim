@@ -158,7 +158,7 @@ export class VectorRenderer {
       this.calibration = new SpectralCalibrationScene(options.look);
       this.scene.add(this.calibration.group);
     } else if (this.mode === 'home') {
-      this.homeEnvironment = createHomeEnvironment(options.homePreset);
+      this.homeEnvironment = createHomeEnvironment(options.homePreset, tier.name);
       applyHomeEnvironmentLook(this.homeEnvironment, options.look.name);
       this.scene.add(this.homeEnvironment);
       this.homeEmitters = new HomeSpectralEmitters(options.look, snapshot.topology.organisms.length);
