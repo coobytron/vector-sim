@@ -14,6 +14,8 @@ def tiny_config():
     config = copy.deepcopy(load_config(CONFIG_PATH))
     config["training"]["train_steps"] = 2
     config["training"]["evaluation_steps"] = 8
+    config["training"]["recovery_pre_steps"] = 2
+    config["training"]["recovery_steps"] = 4
     config["training"]["nodes"] = 16
     return config
 
@@ -35,7 +37,7 @@ def test_all_phenotypes_emit_evaluation_reports(tmp_path):
         assert report["phenotype"] == phenotype
         assert report["evaluation_steps"] == 8
         assert report["metrics"]["nan_rate"] == 0.0
-        assert report["training_objective"] == "controlled-field-lesion-v2"
+        assert report["training_objective"] == "controlled-field-lesion-v3-recovery-margin"
         assert report["evaluation_protocol"] == "controlled-field-lesion-v2"
         assert report["metrics"]["positive_field_response"] >= 0.0
         assert report["metrics"]["negative_field_response"] >= 0.0
