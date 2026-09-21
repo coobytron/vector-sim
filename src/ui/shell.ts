@@ -2,6 +2,8 @@ import type { QualityTierName } from '../simulation/types';
 import type { RenderMode } from '../rendering/vectorRenderer';
 import type { SpectralLookName } from '../spectral/looks';
 import type { MorphologyLod, OrganismVisualState } from '../organisms/types';
+import { HOME_PRESETS } from '../environments/homePresets';
+import { resolveHomeRoute, type HomeRouteState } from '../environments/homeRoute';
 
 export interface ShellElements {
   canvas: HTMLCanvasElement;
@@ -16,6 +18,8 @@ export interface ShellElements {
   stateSelect?: HTMLSelectElement;
   distanceSelect?: HTMLSelectElement;
   ncaSelect?: HTMLSelectElement;
+  homePresetSelect?: HTMLSelectElement;
+  homeCameraSelect?: HTMLSelectElement;
   fallback: HTMLElement;
 }
 
@@ -27,10 +31,26 @@ export function createShell(
   organismState?: OrganismVisualState,
   organismDistance: MorphologyLod = 'mid',
   ncaMode: 'live' | 'frozen' = 'live',
+  homeRoute: HomeRouteState = resolveHomeRoute(''),
 ): ShellElements {
   const modeLink = mode === 'organisms' ? '?' : '?organisms=1&tick=180&state=feeding&distance=mid';
   const modeLabel = mode === 'organisms' ? 'Home' : 'Organisms';
   const phaseLabel = mode === 'organisms' ? 'P04 / Organism Lab' : mode === 'calibration' ? 'P03 / Calibration' : 'P04';
+  const homeControls = mode === 'home'
+    ? `
+        <label>
+          <span>Home preset</span>
+          <select data-home-preset aria-label="Home preset">
+            ${Object.values(HOME_PRESETS).map((preset) => `<option value="${preset.id}" ${homeRoute.preset.id === preset.id ? 'selected' : ''}>${preset.displayName}</option>`).join('')}
+          </select>
+        </label>
+        <label>
+          <span>Camera</span>
+          <select data-home-camera aria-label="Home camera">
+            ${homeRoute.preset.cameras.map((camera) => `<option value="${camera.role}" ${homeRoute.camera.role === camera.role ? 'selected' : ''}>${camera.role.charAt(0).toUpperCase()}${camera.role.slice(1)}</option>`).join('')}
+          </select>
+        </label>`
+    : '';
   const organismControls = mode === 'organisms'
     ? `
         <label>
@@ -90,6 +110,7 @@ export function createShell(
           </select>
         </label>
         ${organismControls}
+        ${homeControls}
         <a href="${modeLink}">${modeLabel}</a>
         <a href="?calibration=1">Calibration</a>
         <a href="?benchmark=1&quality=${quality}">Run benchmark</a>
@@ -117,6 +138,8 @@ export function createShell(
     stateSelect: root.querySelector<HTMLSelectElement>('[data-state]') ?? undefined,
     distanceSelect: root.querySelector<HTMLSelectElement>('[data-distance]') ?? undefined,
     ncaSelect: root.querySelector<HTMLSelectElement>('[data-nca]') ?? undefined,
+    homePresetSelect: root.querySelector<HTMLSelectElement>('[data-home-preset]') ?? undefined,
+    homeCameraSelect: root.querySelector<HTMLSelectElement>('[data-home-camera]') ?? undefined,
     fallback: requireElement<HTMLElement>('[data-fallback]'),
   };
 }

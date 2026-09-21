@@ -194,7 +194,7 @@ export const HOME_PRESETS: Readonly<Record<HomePresetId, HomePresetManifest>> = 
 };
 
 export function selectHomePreset(id: string | null | undefined): HomePresetManifest {
-  if (id && id in HOME_PRESETS) return HOME_PRESETS[id as HomePresetId];
+  if (id && Object.hasOwn(HOME_PRESETS, id)) return HOME_PRESETS[id as HomePresetId];
   return HOME_PRESETS['courtyard-house'];
 }
 

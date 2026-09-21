@@ -3,7 +3,6 @@ import {
   parseBenchmarkDurationSeconds,
 } from '../benchmark/browserBenchmark';
 import { runGpuMicrobenchmarks } from '../benchmark/gpuMicrobenchmarks';
-import { resolveHomeRoute } from '../environments/homeRoute';
 import {
   parseCaptureDistance,
   parseCaptureState,
@@ -20,6 +19,7 @@ import { showBenchmarkProgress, showBenchmarkResult } from '../ui/benchmarkPanel
 import { createShell, showFallback } from '../ui/shell';
 import { createSpectralPanel } from '../ui/spectralPanel';
 import { selectSpectralLook } from '../spectral/looks';
+import { resolveHomeRoute, writeHomeRoute } from '../environments/homeRoute';
 
 export interface VectorSimApp {
   dispose(): void;
@@ -36,14 +36,14 @@ export function createApp(root: HTMLElement): VectorSimApp {
       ? 'calibration'
       : 'home';
   let look = selectSpectralLook(parameters.get('look'));
-  const seed = parseRunSeed(parameters.get('seed'));
+  const homeRoute = mode === 'home' ? resolveHomeRoute(parameters) : undefined;
+  const seed = parseRunSeed(parameters.get('seed'), homeRoute?.preset.seed);
   const ncaMode = parseNcaMode(parameters.get('nca'));
-  const captureTick = mode === 'organisms' ? parseCaptureTick(parameters.get('tick')) : undefined;
+  const captureTick = mode !== 'calibration' ? parseCaptureTick(parameters.get('tick')) : undefined;
   const captureState = mode === 'organisms' ? parseCaptureState(parameters.get('state')) : undefined;
   const captureDistance = mode === 'organisms'
     ? parseCaptureDistance(parameters.get('distance'))
     : undefined;
-  const homeRoute = mode === 'home' ? resolveHomeRoute(parameters) : undefined;
   const shell = createShell(
     root,
     tier.name,
@@ -52,6 +52,7 @@ export function createApp(root: HTMLElement): VectorSimApp {
     captureState,
     captureDistance ?? 'mid',
     ncaMode,
+    homeRoute,
   );
   if (parityRequested) {
     if (!capabilities.webgl2) {
@@ -171,10 +172,10 @@ export function createApp(root: HTMLElement): VectorSimApp {
     : undefined;
 
   if (paused) shell.pauseButton.textContent = 'Resume';
-  const captureStatus = mode === 'organisms'
+  let captureStatus = mode === 'organisms'
     ? ` · ${captureState ?? 'live state'} · seed ${seed} · ${ncaMode} NCA`
     : mode === 'home' && homeRoute
-      ? ` · ${homeRoute.preset.displayName} · ${homeRoute.camera.role}`
+      ? ` · ${homeRoute.preset.displayName} · ${homeRoute.camera.role} · seed ${seed}`
       : '';
   shell.status.textContent = `${tier.name} · ${look.label}${captureStatus} · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2'}`;
   shell.pauseButton.addEventListener('click', () => {
@@ -220,6 +221,23 @@ export function createApp(root: HTMLElement): VectorSimApp {
     const url = new URL(window.location.href);
     url.searchParams.set('nca', shell.ncaSelect?.value ?? 'live');
     window.location.assign(url);
+  });
+  shell.homePresetSelect?.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('homePreset', shell.homePresetSelect?.value ?? 'courtyard-house');
+    const route = resolveHomeRoute(url.searchParams);
+    url.search = writeHomeRoute(url.searchParams, route.preset, route.camera).toString();
+    window.location.assign(url);
+  });
+  shell.homeCameraSelect?.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('homeCamera', shell.homeCameraSelect?.value ?? 'establishing');
+    const route = resolveHomeRoute(url.searchParams);
+    renderer.setHomeCamera(route.camera);
+    captureStatus = ` · ${route.preset.displayName} · ${route.camera.role} · seed ${seed}`;
+    shell.status.textContent = `${tier.name} · ${look.label}${captureStatus} · ${capabilities.webgpu ? 'WebGPU available' : 'WebGL2'}`;
+    url.search = writeHomeRoute(url.searchParams, route.preset, route.camera).toString();
+    window.history.replaceState({}, '', url);
   });
 
   const onVisibility = (): void => {

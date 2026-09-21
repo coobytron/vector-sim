@@ -89,3 +89,17 @@ response profiles, and **Save PNG** to capture the final post-processed canvas.
 Open `?organisms=1` for the P04 organism lab. Stable comparison routes can set
 `seed`, `tick`, `state`, `look`, `distance`, and `nca=frozen`; the on-screen
 selectors cover lifecycle state, camera distance, NCA mode, and all three looks.
+
+Home's **Home preset** selector loads Courtyard House, Domestic Section, or
+Tabletop Habitat. **Camera** selects the preset's authored establishing, orbit,
+top-down, or macro view; **Recenter** restores the currently selected view.
+Both selections are stored in the URL, for example:
+`?homePreset=domestic-section&homeCamera=top-down&look=porcelain&tick=180`.
+Home defaults to the manifest's seed; an explicit `seed` overrides it. `tick`
+advances to a reproducible simulation tick and starts paused for capture. Camera
+changes preserve the current simulation; preset changes reload the scene while
+preserving other URL options. Organism Lab and Calibration keep their own controls.
+
+These Home routes expose the environment shell and existing reference simulation.
+Selected-checkpoint execution, manifest-driven live organism ecology, and creative
+approval remain tracked separately in #31, #42, #50, and #51.

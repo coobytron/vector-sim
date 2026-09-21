@@ -20,6 +20,7 @@ import {
   type SpectralLookProfile,
 } from '../spectral/looks';
 import { HomeSpectralEmitters } from './homeSpectralEmitters';
+import { applyHomeCamera } from './homeCamera';
 import { MotionTrailBuffer } from './motionTrailBuffer';
 import { SpectralCalibrationScene } from './spectralCalibrationScene';
 import { SpectralPostProcessor } from './spectralPostProcessor';
@@ -86,12 +87,12 @@ export class VectorRenderer {
   private readonly calibration?: SpectralCalibrationScene;
   private readonly mode: RenderMode;
   private readonly fixedLod?: MorphologyLod;
-  private readonly homeCamera?: HomeCameraPreset;
   private readonly packOptions: { lod: MorphologyLod; stateOverride?: OrganismVisualState } = {
     lod: 'macro',
   };
   private look: SpectralLookProfile;
   private debugSample: SpectralColorSample;
+  private homeCamera?: HomeCameraPreset;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -141,10 +142,11 @@ export class VectorRenderer {
     }
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.075;
-    this.controls.minDistance = this.mode === 'calibration' ? 6.5 : this.mode === 'organisms' ? 2.2 : 4.0;
+    this.controls.minDistance = this.mode === 'calibration' ? 6.5 : this.mode === 'organisms' ? 2.2 : 0.25;
     this.controls.maxDistance = 12;
     this.controls.maxPolarAngle = Math.PI * 0.49;
     this.controls.update();
+    if (this.homeCamera) this.setHomeCamera(this.homeCamera);
 
     const key = new THREE.DirectionalLight(0xffffff, 3.2);
     key.position.set(4, 7, 5);
@@ -511,6 +513,12 @@ export class VectorRenderer {
     return downloadCanvasPng(this.canvas, `spectral-homestead-${this.mode}-${Date.now()}.png`);
   }
 
+  setHomeCamera(preset: HomeCameraPreset): void {
+    if (this.mode !== 'home') return;
+    this.homeCamera = preset;
+    applyHomeCamera(this.camera, this.controls, preset);
+  }
+
   recenter(): void {
     if (this.mode === 'calibration') {
       this.camera.position.set(0, 0.15, 8.8);
@@ -519,10 +527,7 @@ export class VectorRenderer {
       this.setOrganismCamera(this.fixedLod ?? 'mid');
       this.controls.target.set(0, 0.72, 0);
     } else if (this.homeCamera) {
-      this.camera.position.set(this.homeCamera.position.x, this.homeCamera.position.y, this.homeCamera.position.z);
-      this.camera.fov = this.homeCamera.fovDegrees;
-      this.camera.updateProjectionMatrix();
-      this.controls.target.set(this.homeCamera.target.x, this.homeCamera.target.y, this.homeCamera.target.z);
+      this.setHomeCamera(this.homeCamera);
     } else {
       this.camera.position.set(5.4, 3.75, 6.2);
       this.camera.fov = 42;
