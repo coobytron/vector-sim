@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import type { SpectralLookName } from '../spectral/looks';
-import { createHomeGeometryParts, type HomeGeometryPart } from './homeGeometry';
+import {
+  selectHomeGeometryParts,
+  type HomeGeometryPart,
+  type HomeQualityDensityName,
+} from './homeGeometry';
 import {
   selectHomePreset,
   type HomePresetManifest,
@@ -70,13 +74,21 @@ function objectFor(part: HomeGeometryPart): THREE.Object3D {
 
 export function createHomeEnvironment(
   preset: HomePresetManifest = selectHomePreset(null),
+  quality: HomeQualityDensityName = 'desktop',
 ): THREE.Group {
   const home = new THREE.Group();
+  const density = preset.qualityDensity[quality];
+  const parts = selectHomeGeometryParts(preset, quality);
+
   home.name = `home-${preset.id}`;
   home.userData.presetId = preset.id;
   home.userData.seed = preset.seed;
+  home.userData.quality = quality;
+  home.userData.architectureDetail = density.architectureDetail;
+  home.userData.decorativeBudget = density.decorativeBudget;
+  home.userData.geometryPartCount = parts.length;
 
-  for (const part of createHomeGeometryParts(preset)) {
+  for (const part of parts) {
     home.add(objectFor(part));
   }
 
