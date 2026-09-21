@@ -1,0 +1,253 @@
+{
+  "source": {
+    "workflow_run_url": "https://github.com/coobytron/vector-sim/actions/runs/35535186261",
+    "job_id": 106142832928,
+    "pr_head_sha": "b6cd7aded48e844a1f9cb16e09c6d6cd9050eb9f",
+    "tested_merge_sha": "adcfc2262dd9d8a691a99dd7de7b4c237ffee726",
+    "artifact_id": 10613030037,
+    "extracted_from": "Completed workflow job JSON output"
+  },
+  "decision": "reject-all; no browser checkpoint promoted",
+  "reports": [
+    {
+      "baseline_metrics": {
+        "damage_recovery_delta": -0.622630774974823,
+        "damage_recovery_error": 1.019308090209961,
+        "damage_recovery_fraction": -1.5696152448654175,
+        "field_contrast": 1.3136597871780396,
+        "growth": 2.3425748348236084,
+        "max_abs_state": 7.241057872772217,
+        "nan_rate": 0,
+        "negative_field_response": 0.875908374786377,
+        "phenotype_target_loss": 2.1457417011260986,
+        "positive_field_response": 1.1032594442367554,
+        "stability_error": 8.10559368133545
+      },
+      "delta_vs_untrained": {
+        "damage_recovery_delta": 0.5697783827781677,
+        "damage_recovery_error": 2.1654279232025146,
+        "damage_recovery_fraction": 1.5527396518737078,
+        "field_contrast": 1.7511504888534546,
+        "growth": 9.651871919631958,
+        "max_abs_state": 6.4602580070495605,
+        "nan_rate": 0,
+        "negative_field_response": 1.8929319381713867,
+        "phenotype_target_loss": 25.85421061515808,
+        "positive_field_response": -0.8051569759845734,
+        "stability_error": 140.42280292510986
+      },
+      "evaluation_protocol": "controlled-field-lesion-v2",
+      "evaluation_steps": 512,
+      "manifest": {
+        "architecture": "vector_nca_mlp_v1",
+        "checkpoint_version": "p05b-candidate-v1",
+        "dtype": "float32",
+        "hidden_width": 64,
+        "intended_use": "P05 training development and P06 browser-export contract validation",
+        "latent_channels": 16,
+        "limitations": [
+          "Candidate checkpoint; production phenotype quality still requires visual and physical-device validation.",
+          "Exact PyTorch floating-point replay is only expected within the pinned environment."
+        ],
+        "metrics": {
+          "damage_recovery_delta": -0.05285239219665527,
+          "damage_recovery_error": 3.1847360134124756,
+          "damage_recovery_fraction": -0.01687559299170971,
+          "field_contrast": 3.064810276031494,
+          "growth": 11.994446754455566,
+          "max_abs_state": 13.701315879821777,
+          "nan_rate": 0,
+          "negative_field_response": 2.7688403129577637,
+          "phenotype_target_loss": 27.99995231628418,
+          "positive_field_response": 0.298102468252182,
+          "stability_error": 148.5283966064453
+        },
+        "phenotype": "branching",
+        "schema_version": 1,
+        "sensor_channels": 6,
+        "sha256": "4ad2858ccc43abe97835eb9ac099fbf24f699d6d0357530822719291fd297841",
+        "training_seed": 240807,
+        "update_rate": 0.025
+      },
+      "metrics": {
+        "damage_recovery_delta": -0.05285239219665527,
+        "damage_recovery_error": 3.1847360134124756,
+        "damage_recovery_fraction": -0.01687559299170971,
+        "field_contrast": 3.064810276031494,
+        "growth": 11.994446754455566,
+        "max_abs_state": 13.701315879821777,
+        "nan_rate": 0,
+        "negative_field_response": 2.7688403129577637,
+        "phenotype_target_loss": 27.99995231628418,
+        "positive_field_response": 0.298102468252182,
+        "stability_error": 148.5283966064453
+      },
+      "phenotype": "branching",
+      "preview_json": "branching.preview.json",
+      "preview_svg": "branching.preview.svg",
+      "seed": 240807,
+      "train_steps": 128,
+      "training_objective": "controlled-field-lesion-v3-recovery-margin"
+    },
+    {
+      "baseline_metrics": {
+        "damage_recovery_delta": -0.622630774974823,
+        "damage_recovery_error": 1.019308090209961,
+        "damage_recovery_fraction": -1.5696152448654175,
+        "field_contrast": 1.3136597871780396,
+        "growth": 2.3425748348236084,
+        "max_abs_state": 7.241057872772217,
+        "nan_rate": 0,
+        "negative_field_response": 0.875908374786377,
+        "phenotype_target_loss": 5.597357749938965,
+        "positive_field_response": 1.1032594442367554,
+        "stability_error": 8.10559368133545
+      },
+      "delta_vs_untrained": {
+        "damage_recovery_delta": 0.5425121188163757,
+        "damage_recovery_error": 2.141191244125366,
+        "damage_recovery_fraction": 1.5436059087514877,
+        "field_contrast": -1.2878098729997873,
+        "growth": 10.127866983413696,
+        "max_abs_state": 5.59350061416626,
+        "nan_rate": 0,
+        "negative_field_response": -0.8628219030797482,
+        "phenotype_target_loss": 17.81808376312256,
+        "positive_field_response": -1.0875212047249079,
+        "stability_error": 149.25832843780518
+      },
+      "evaluation_protocol": "controlled-field-lesion-v2",
+      "evaluation_steps": 512,
+      "manifest": {
+        "architecture": "vector_nca_mlp_v1",
+        "checkpoint_version": "p05b-candidate-v1",
+        "dtype": "float32",
+        "hidden_width": 64,
+        "intended_use": "P05 training development and P06 browser-export contract validation",
+        "latent_channels": 16,
+        "limitations": [
+          "Candidate checkpoint; production phenotype quality still requires visual and physical-device validation.",
+          "Exact PyTorch floating-point replay is only expected within the pinned environment."
+        ],
+        "metrics": {
+          "damage_recovery_delta": -0.08011865615844727,
+          "damage_recovery_error": 3.160499334335327,
+          "damage_recovery_fraction": -0.02600933611392975,
+          "field_contrast": 0.02584991417825222,
+          "growth": 12.470441818237305,
+          "max_abs_state": 12.834558486938477,
+          "nan_rate": 0,
+          "negative_field_response": 0.0130864717066288,
+          "phenotype_target_loss": 23.415441513061523,
+          "positive_field_response": 0.015738239511847496,
+          "stability_error": 157.36392211914062
+        },
+        "phenotype": "ribbon",
+        "schema_version": 1,
+        "sensor_channels": 6,
+        "sha256": "90a31b84cb5ac835aea52a613384e53bdac95306d633fbf15cdb5cb85656adec",
+        "training_seed": 240807,
+        "update_rate": 0.025
+      },
+      "metrics": {
+        "damage_recovery_delta": -0.08011865615844727,
+        "damage_recovery_error": 3.160499334335327,
+        "damage_recovery_fraction": -0.02600933611392975,
+        "field_contrast": 0.02584991417825222,
+        "growth": 12.470441818237305,
+        "max_abs_state": 12.834558486938477,
+        "nan_rate": 0,
+        "negative_field_response": 0.0130864717066288,
+        "phenotype_target_loss": 23.415441513061523,
+        "positive_field_response": 0.015738239511847496,
+        "stability_error": 157.36392211914062
+      },
+      "phenotype": "ribbon",
+      "preview_json": "ribbon.preview.json",
+      "preview_svg": "ribbon.preview.svg",
+      "seed": 240807,
+      "train_steps": 128,
+      "training_objective": "controlled-field-lesion-v3-recovery-margin"
+    },
+    {
+      "baseline_metrics": {
+        "damage_recovery_delta": -0.622630774974823,
+        "damage_recovery_error": 1.019308090209961,
+        "damage_recovery_fraction": -1.5696152448654175,
+        "field_contrast": 1.3136597871780396,
+        "growth": 2.3425748348236084,
+        "max_abs_state": 7.241057872772217,
+        "nan_rate": 0,
+        "negative_field_response": 0.875908374786377,
+        "phenotype_target_loss": 5.867093086242676,
+        "positive_field_response": 1.1032594442367554,
+        "stability_error": 8.10559368133545
+      },
+      "delta_vs_untrained": {
+        "damage_recovery_delta": 0.5062770247459412,
+        "damage_recovery_error": 2.123945951461792,
+        "damage_recovery_fraction": 1.5311753414571285,
+        "field_contrast": -1.2740617133677006,
+        "growth": 9.954745531082153,
+        "max_abs_state": 5.523070812225342,
+        "nan_rate": 0,
+        "negative_field_response": -0.8564698453992605,
+        "phenotype_target_loss": 17.851147651672363,
+        "positive_field_response": -1.0758462063968182,
+        "stability_error": 145.14236164093018
+      },
+      "evaluation_protocol": "controlled-field-lesion-v2",
+      "evaluation_steps": 512,
+      "manifest": {
+        "architecture": "vector_nca_mlp_v1",
+        "checkpoint_version": "p05b-candidate-v1",
+        "dtype": "float32",
+        "hidden_width": 64,
+        "intended_use": "P05 training development and P06 browser-export contract validation",
+        "latent_channels": 16,
+        "limitations": [
+          "Candidate checkpoint; production phenotype quality still requires visual and physical-device validation.",
+          "Exact PyTorch floating-point replay is only expected within the pinned environment."
+        ],
+        "metrics": {
+          "damage_recovery_delta": -0.11635375022888184,
+          "damage_recovery_error": 3.143254041671753,
+          "damage_recovery_fraction": -0.038439903408288956,
+          "field_contrast": 0.039598073810338974,
+          "growth": 12.297320365905762,
+          "max_abs_state": 12.764128684997559,
+          "nan_rate": 0,
+          "negative_field_response": 0.019438529387116432,
+          "phenotype_target_loss": 23.71824073791504,
+          "positive_field_response": 0.02741323783993721,
+          "stability_error": 153.24795532226562
+        },
+        "phenotype": "radial",
+        "schema_version": 1,
+        "sensor_channels": 6,
+        "sha256": "57e4f3d073bfe61cc8b45a7b9bab630d2553e43bc14e8f8130d8f55f16a7d44a",
+        "training_seed": 240807,
+        "update_rate": 0.025
+      },
+      "metrics": {
+        "damage_recovery_delta": -0.11635375022888184,
+        "damage_recovery_error": 3.143254041671753,
+        "damage_recovery_fraction": -0.038439903408288956,
+        "field_contrast": 0.039598073810338974,
+        "growth": 12.297320365905762,
+        "max_abs_state": 12.764128684997559,
+        "nan_rate": 0,
+        "negative_field_response": 0.019438529387116432,
+        "phenotype_target_loss": 23.71824073791504,
+        "positive_field_response": 0.02741323783993721,
+        "stability_error": 153.24795532226562
+      },
+      "phenotype": "radial",
+      "preview_json": "radial.preview.json",
+      "preview_svg": "radial.preview.svg",
+      "seed": 240807,
+      "train_steps": 128,
+      "training_objective": "controlled-field-lesion-v3-recovery-margin"
+    }
+  ]
+}

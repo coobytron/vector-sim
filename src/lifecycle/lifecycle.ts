@@ -233,6 +233,7 @@ export function createLifecycleSystem(options: LifecycleSystemOptions): Lifecycl
     const sample: LifecycleFieldSample = {
       energy: readChannel(sampled.scalars, 'energy'),
       danger: readChannel(sampled.scalars, 'danger'),
+      shelter: readChannel(sampled.scalars, 'shelter'),
       sourceIds: sampled.sourceIds,
       contacts: sampled.contacts,
     };
@@ -242,7 +243,7 @@ export function createLifecycleSystem(options: LifecycleSystemOptions): Lifecycl
     // Feeding and drain. Intake and expenditure are reported as rates so a
     // later renderer can show the balance without recomputing it.
     const intake = f32(rates.intakePerEnergyUnit * sample.energy);
-    const expenditure = rates.idleDrainPerSecond;
+    const expenditure = f32(rates.idleDrainPerSecond * f32(1 - f32(0.4 * (sample.shelter ?? 0))));
     organism.intakeRate = intake;
     organism.expenditureRate = expenditure;
 
@@ -392,7 +393,7 @@ export function createLifecycleSystem(options: LifecycleSystemOptions): Lifecycl
         status: 'searching',
         statusSinceTick: tick,
         starvedSeconds: 0,
-        sample: { energy: 0, danger: 0, sourceIds: [], contacts: [] },
+        sample: { energy: 0, danger: 0, shelter: 0, sourceIds: [], contacts: [] },
         deathCause: null,
       };
       organisms.set(organism.id, organism);

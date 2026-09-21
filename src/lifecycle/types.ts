@@ -34,6 +34,8 @@ export interface LifecycleFieldSample {
   readonly energy: number;
   /** Generic negative channel, `[0, 1]`. */
   readonly danger: number;
+  /** Idle-drain protection, `[0, 1]`; absent in older snapshots means zero. */
+  readonly shelter?: number;
   /** Contributing source IDs, ascending. */
   readonly sourceIds: readonly string[];
   readonly contacts: readonly FieldContact[];

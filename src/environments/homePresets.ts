@@ -1,8 +1,11 @@
 import {
+  createCompositeFieldProvider,
+  createShelterFieldProvider,
   createSignedFieldProvider,
   vec3,
   type EffectSource,
   type FieldProvider,
+  type ShelterRegion,
   type Vec3,
 } from './fields';
 
@@ -24,12 +27,7 @@ export interface HomeSpawnRegion {
   readonly capacity: number;
 }
 
-export interface HomeShelterRegion {
-  readonly id: string;
-  readonly center: Vec3;
-  readonly halfExtentsMeters: Vec3;
-  readonly strength: number;
-}
+export type HomeShelterRegion = ShelterRegion;
 
 export interface HomePresetManifest {
   readonly schemaVersion: 'home-preset.v1';
@@ -199,10 +197,11 @@ export function selectHomePreset(id: string | null | undefined): HomePresetManif
 }
 
 export function createHomePresetFieldProvider(presetManifest: HomePresetManifest): FieldProvider {
-  return createSignedFieldProvider(
-    `spectral-home/${presetManifest.id}`,
-    presetManifest.effectSources,
-  );
+  const id = `spectral-home/${presetManifest.id}`;
+  return createCompositeFieldProvider(id, [
+    createSignedFieldProvider(`${id}/effects`, presetManifest.effectSources),
+    createShelterFieldProvider(`${id}/shelter`, presetManifest.shelterRegions),
+  ]);
 }
 
 export function withHomeEffectStrength(

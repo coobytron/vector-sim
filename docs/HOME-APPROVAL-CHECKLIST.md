@@ -31,6 +31,16 @@ a deterministic capture from the fixture above.
 - [ ] Habitat changes model input/behavior without directly changing health or energy.
 - [ ] Source declaration order produces identical golden samples and tick hashes.
 
+Automated shelter evidence: `tests/shelter.test.ts` covers all three authored
+Home presets, saturating overlap, 40% full-strength idle-drain reduction,
+restoration of baseline drain outside shelter, and unchanged hazard damage.
+Shelter produces no feeding event or emitter contact. These checks support the
+implementation; the fixture-based visual acceptance boxes above remain open.
+
+The [pinned v3 training review](../training/evidence/p05b-recovery-margin-v3/SELECTION.md)
+rejects all three candidates because measured lesion recovery remains negative.
+Successful workflow execution does not satisfy the learned-model gate below.
+
 ## NCA and organism behavior
 
 - [ ] The running model is a repeated learned local NCA update, not a scripted animation sequence.

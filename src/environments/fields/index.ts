@@ -25,6 +25,7 @@ export {
   createCompositeFieldProvider,
   createRadialScalarProvider,
   createSignedFieldProvider,
+  createShelterFieldProvider,
   createUniformVectorProvider,
 } from './provider';
 export type {
@@ -33,6 +34,7 @@ export type {
   FieldProvider,
   FieldProviderManifest,
   FieldSample,
+  ShelterRegion,
 } from './provider';
 export { createRasterDatasetProvider } from './rasterDataset';
 export type {
