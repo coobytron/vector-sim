@@ -39,6 +39,48 @@ export interface FieldProvider {
 
 export class FieldProviderValidationError extends Error {}
 
+/** Axis-aligned volume with uniform shelter strength, including its boundary. */
+export interface ShelterRegion {
+  readonly id: string;
+  readonly center: Vec3;
+  readonly halfExtentsMeters: Vec3;
+  readonly strength: number;
+}
+
+export function createShelterFieldProvider(id: string, regions: readonly ShelterRegion[]): FieldProvider {
+  const seen = new Set<string>();
+  const ordered = regions.map((region) => {
+    if (!region.id.trim() || seen.has(region.id)) {
+      throw new FieldProviderValidationError(`provider ${id}: invalid or duplicate shelter id ${region.id}`);
+    }
+    seen.add(region.id);
+    if (!Number.isFinite(region.strength) || region.strength < 0 || region.strength > 1) {
+      throw new FieldProviderValidationError(`provider ${id}: shelter ${region.id} strength must be within [0, 1]`);
+    }
+    for (const axis of ['x', 'y', 'z'] as const) {
+      if (!Number.isFinite(f32(region.center[axis])) ||
+          !Number.isFinite(f32(region.halfExtentsMeters[axis])) || region.halfExtentsMeters[axis] < 0) {
+        throw new FieldProviderValidationError(`provider ${id}: shelter ${region.id} requires finite coordinates and nonnegative extents`);
+      }
+    }
+    return { id: region.id, center: quantize(region.center),
+      halfExtentsMeters: quantize(region.halfExtentsMeters), strength: f32(region.strength) };
+  }).sort(compareId);
+  return withBatch({ id, channels: [{ id: 'shelter', kind: 'scalar', semantic: 'idle-drain-reduction' }] }, (point) => {
+    let complement = 1;
+    const sourceIds: string[] = [];
+    for (const region of ordered) {
+      if (region.strength > 0 && (['x', 'y', 'z'] as const).every((axis) =>
+        Math.abs(f32(point[axis] - region.center[axis])) <= region.halfExtentsMeters[axis])) {
+        complement = f32(complement * f32(1 - region.strength));
+        sourceIds.push(region.id);
+      }
+    }
+    return { scalars: { shelter: f32(1 - complement) }, vectors: {}, sourceIds, contacts: [],
+      channelContexts: { shelter: { sourceIds, contacts: [] } } };
+  });
+}
+
 function compareId(a: { readonly id: string }, b: { readonly id: string }): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
