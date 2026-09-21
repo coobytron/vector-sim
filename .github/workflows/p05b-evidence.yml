@@ -7,6 +7,7 @@ on:
       - '.github/workflows/p05b-evidence.yml'
       - 'training/configs/p05b.yaml'
       - 'training/run_bounded.py'
+      - 'training/evaluate_stress.py'
       - 'training/vector_nca/**'
       - 'training/requirements.txt'
 
@@ -48,6 +49,13 @@ jobs:
             --config training/configs/p05b.yaml \
             --phenotype all \
             --out training/artifacts/p05b-ci/campaign
+
+      - name: Evaluate longer horizons and changed lesions
+        run: |
+          PYTHONPATH=training python training/evaluate_stress.py \
+            --config training/configs/p05b.yaml \
+            --checkpoints training/artifacts/p05b-ci/campaign \
+            --out training/artifacts/p05b-ci/stress-evaluation.json
 
       - name: Summarize evidence files
         if: always()

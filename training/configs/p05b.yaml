@@ -14,8 +14,8 @@ training:
   unroll_steps: 32
   train_steps: 128
   evaluation_steps: 512
-  recovery_pre_steps: 16
-  recovery_steps: 64
+  recovery_pre_steps: 128
+  recovery_steps: 384
   recovery_target_fraction: 0.75
   field_response_margin: 0.05
   cross_response_penalty: 0.1

@@ -22,6 +22,7 @@ from vector_nca.evaluation import (
     preview_sequence,
     write_preview_svg,
 )
+from vector_nca.objectives import lesion_recovery_loss
 
 
 def train_one(config: dict, phenotype_name: str, out_dir: Path) -> dict:
@@ -58,8 +59,6 @@ def train_one(config: dict, phenotype_name: str, out_dir: Path) -> dict:
         raise ValueError("recovery_pre_steps and recovery_steps must be >= 1")
     if not 0.0 < recovery_target_fraction < 1.0:
         raise ValueError("recovery_target_fraction must be within (0, 1)")
-    lesion_gate = torch.ones_like(latent)
-    lesion_gate[lesion_mask] = 0.0
 
     for _ in range(train_steps):
         optimizer.zero_grad(set_to_none=True)
@@ -90,32 +89,16 @@ def train_one(config: dict, phenotype_name: str, out_dir: Path) -> dict:
             + cross_penalty * cross_response
         )
 
-        pre_lesion = model.rollout(latent, neutral_sensors, recovery_pre_steps)
-        intact_seed = pre_lesion.detach()
-        lesioned_seed = intact_seed * lesion_gate
         with torch.no_grad():
-            intact_target = model.rollout(
-                intact_seed,
-                neutral_sensors,
-                recovery_steps,
-            )
-        recovered = model.rollout(
-            lesioned_seed,
+            pre_lesion = model.rollout(latent, neutral_sensors, recovery_pre_steps)
+        recovery = lesion_recovery_loss(
+            model,
+            pre_lesion,
             neutral_sensors,
+            lesion_mask,
             recovery_steps,
+            recovery_target_fraction,
         )
-        immediate_damage = (
-            intact_seed[lesion_mask] - lesioned_seed[lesion_mask]
-        ).abs().mean()
-        recovery_error = (
-            recovered[lesion_mask] - intact_target[lesion_mask]
-        ).abs().mean()
-        recovery_target = immediate_damage * recovery_target_fraction
-        recovery_margin = torch.relu(recovery_error - recovery_target)
-        recovery_shape = (
-            recovered[lesion_mask] - intact_target[lesion_mask]
-        ).pow(2).mean()
-        recovery = recovery_shape + recovery_margin
 
         weights = config["loss_weights"]
         loss = (
@@ -162,10 +145,15 @@ def train_one(config: dict, phenotype_name: str, out_dir: Path) -> dict:
         "seed": seed,
         "train_steps": train_steps,
         "evaluation_steps": horizon,
+        "recovery_training": {
+            "pre_steps": recovery_pre_steps,
+            "steps": recovery_steps,
+            "target_fraction": recovery_target_fraction,
+        },
         "metrics": metrics,
         "baseline_metrics": baseline_metrics,
         "delta_vs_untrained": deltas,
-        "training_objective": "controlled-field-lesion-v3-recovery-margin",
+        "training_objective": "controlled-field-lesion-v4-paired-gradient",
         "evaluation_protocol": "controlled-field-lesion-v2",
         "preview_json": preview_json.name,
         "preview_svg": preview_svg.name,
