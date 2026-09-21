@@ -4,6 +4,7 @@ import copy
 from pathlib import Path
 
 from run_bounded import train_one
+from evaluate_stress import evaluate_stress
 from vector_nca.core import load_config
 
 
@@ -37,8 +38,9 @@ def test_all_phenotypes_emit_evaluation_reports(tmp_path):
         assert report["phenotype"] == phenotype
         assert report["evaluation_steps"] == 8
         assert report["metrics"]["nan_rate"] == 0.0
-        assert report["training_objective"] == "controlled-field-lesion-v3-recovery-margin"
+        assert report["training_objective"] == "controlled-field-lesion-v4-paired-gradient"
         assert report["evaluation_protocol"] == "controlled-field-lesion-v2"
+        assert report["recovery_training"] == {"pre_steps": 2, "steps": 4, "target_fraction": 0.75}
         assert report["metrics"]["positive_field_response"] >= 0.0
         assert report["metrics"]["negative_field_response"] >= 0.0
         assert report["metrics"]["damage_recovery_error"] >= 0.0
@@ -47,3 +49,17 @@ def test_all_phenotypes_emit_evaluation_reports(tmp_path):
         assert (tmp_path / phenotype / f"{phenotype}.preview.svg").exists()
         assert (tmp_path / phenotype / f"{phenotype}.manifest.json").exists()
         assert (tmp_path / phenotype / f"{phenotype}.model-card.md").exists()
+
+
+def test_saved_candidates_can_be_stress_evaluated(tmp_path):
+    config = tiny_config()
+    for name in ("branching", "ribbon", "radial"):
+        train_one(config, name, tmp_path)
+    report = evaluate_stress(config, tmp_path)
+    assert len(report["reports"]) == 12
+    for name in ("branching", "ribbon", "radial"):
+        rows = [row for row in report["reports"] if row["phenotype"] == name]
+        assert [(row["horizon"], row["lesion_fraction"]) for row in rows] == [
+            (8, 0.125), (8, 0.375), (16, 0.25), (32, 0.25),
+        ]
+        assert all(row["metrics"]["nan_rate"] == 0 for row in rows)

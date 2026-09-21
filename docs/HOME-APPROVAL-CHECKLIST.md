@@ -40,6 +40,9 @@ implementation; the fixture-based visual acceptance boxes above remain open.
 The [pinned v3 training review](../training/evidence/p05b-recovery-margin-v3/SELECTION.md)
 rejects all three candidates because measured lesion recovery remains negative.
 Successful workflow execution does not satisfy the learned-model gate below.
+The [v4 follow-up](../training/evidence/p05b-paired-gradient-v4/SELECTION.md)
+fixes a recovery-gradient defect and measures positive recovery at 512 ticks,
+but all candidates still fail the 2,048-tick stress test. No model is promoted.
 
 ## NCA and organism behavior
 

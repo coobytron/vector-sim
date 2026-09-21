@@ -1,0 +1,222 @@
+{
+  "evaluation_protocol": "controlled-field-lesion-v2",
+  "purpose": "stress evidence; no automatic checkpoint promotion",
+  "reports": [
+    {
+      "horizon": 512,
+      "lesion_fraction": 0.125,
+      "metrics": {
+        "damage_recovery_delta": 0.2613782286643982,
+        "damage_recovery_error": 0.11308557540178299,
+        "damage_recovery_fraction": 0.6980066895484924,
+        "field_contrast": 1.2923381328582764,
+        "growth": 0.832231342792511,
+        "max_abs_state": 4.978415012359619,
+        "nan_rate": 0.0,
+        "negative_field_response": 0.9441249370574951,
+        "phenotype_target_loss": 0.8227872848510742,
+        "positive_field_response": 0.7083838582038879,
+        "stability_error": 1.3117942810058594
+      },
+      "phenotype": "branching"
+    },
+    {
+      "horizon": 512,
+      "lesion_fraction": 0.375,
+      "metrics": {
+        "damage_recovery_delta": 0.27494117617607117,
+        "damage_recovery_error": 0.09322430938482285,
+        "damage_recovery_fraction": 0.7467869520187378,
+        "field_contrast": 1.2923381328582764,
+        "growth": 0.832231342792511,
+        "max_abs_state": 4.978415012359619,
+        "nan_rate": 0.0,
+        "negative_field_response": 0.9441249370574951,
+        "phenotype_target_loss": 0.8227872848510742,
+        "positive_field_response": 0.7083838582038879,
+        "stability_error": 1.3117942810058594
+      },
+      "phenotype": "branching"
+    },
+    {
+      "horizon": 1024,
+      "lesion_fraction": 0.25,
+      "metrics": {
+        "damage_recovery_delta": 0.05639755725860596,
+        "damage_recovery_error": 0.5449140071868896,
+        "damage_recovery_fraction": 0.09379090368747711,
+        "field_contrast": 4.369743347167969,
+        "growth": 2.514861583709717,
+        "max_abs_state": 12.818041801452637,
+        "nan_rate": 0.0,
+        "negative_field_response": 3.0722947120666504,
+        "phenotype_target_loss": 5.012327194213867,
+        "positive_field_response": 2.106292486190796,
+        "stability_error": 12.286710739135742
+      },
+      "phenotype": "branching"
+    },
+    {
+      "horizon": 2048,
+      "lesion_fraction": 0.25,
+      "metrics": {
+        "damage_recovery_delta": -3.106229066848755,
+        "damage_recovery_error": 3.8325564861297607,
+        "damage_recovery_fraction": -4.276623249053955,
+        "field_contrast": 13.820433616638184,
+        "growth": 9.562105178833008,
+        "max_abs_state": 32.18125915527344,
+        "nan_rate": 0.0,
+        "negative_field_response": 10.426548957824707,
+        "phenotype_target_loss": 36.810585021972656,
+        "positive_field_response": 4.979109287261963,
+        "stability_error": 141.54261779785156
+      },
+      "phenotype": "branching"
+    },
+    {
+      "horizon": 512,
+      "lesion_fraction": 0.125,
+      "metrics": {
+        "damage_recovery_delta": 0.25889822840690613,
+        "damage_recovery_error": 0.1062898263335228,
+        "damage_recovery_fraction": 0.7089449167251587,
+        "field_contrast": 1.2195347547531128,
+        "growth": 0.7812638878822327,
+        "max_abs_state": 4.512138366699219,
+        "nan_rate": 0.0,
+        "negative_field_response": 0.9027214646339417,
+        "phenotype_target_loss": 1.7504451274871826,
+        "positive_field_response": 0.656306803226471,
+        "stability_error": 1.2075142860412598
+      },
+      "phenotype": "ribbon"
+    },
+    {
+      "horizon": 512,
+      "lesion_fraction": 0.375,
+      "metrics": {
+        "damage_recovery_delta": 0.27112942934036255,
+        "damage_recovery_error": 0.08652982115745544,
+        "damage_recovery_fraction": 0.7580662965774536,
+        "field_contrast": 1.2195347547531128,
+        "growth": 0.7812638878822327,
+        "max_abs_state": 4.512138366699219,
+        "nan_rate": 0.0,
+        "negative_field_response": 0.9027214646339417,
+        "phenotype_target_loss": 1.7504451274871826,
+        "positive_field_response": 0.656306803226471,
+        "stability_error": 1.2075142860412598
+      },
+      "phenotype": "ribbon"
+    },
+    {
+      "horizon": 1024,
+      "lesion_fraction": 0.25,
+      "metrics": {
+        "damage_recovery_delta": 0.12046593427658081,
+        "damage_recovery_error": 0.4744386076927185,
+        "damage_recovery_fraction": 0.2024962455034256,
+        "field_contrast": 4.082539081573486,
+        "growth": 2.0990946292877197,
+        "max_abs_state": 12.168692588806152,
+        "nan_rate": 0.0,
+        "negative_field_response": 2.9328129291534424,
+        "phenotype_target_loss": 5.223264694213867,
+        "positive_field_response": 2.1667966842651367,
+        "stability_error": 9.44909954071045
+      },
+      "phenotype": "ribbon"
+    },
+    {
+      "horizon": 2048,
+      "lesion_fraction": 0.25,
+      "metrics": {
+        "damage_recovery_delta": -3.020280599594116,
+        "damage_recovery_error": 3.7518677711486816,
+        "damage_recovery_fraction": -4.128394603729248,
+        "field_contrast": 12.910021781921387,
+        "growth": 8.560993194580078,
+        "max_abs_state": 30.094694137573242,
+        "nan_rate": 0.0,
+        "negative_field_response": 9.7261381149292,
+        "phenotype_target_loss": 25.217565536499023,
+        "positive_field_response": 5.210859298706055,
+        "stability_error": 117.20927429199219
+      },
+      "phenotype": "ribbon"
+    },
+    {
+      "horizon": 512,
+      "lesion_fraction": 0.125,
+      "metrics": {
+        "damage_recovery_delta": 0.20686686038970947,
+        "damage_recovery_error": 0.13270771503448486,
+        "damage_recovery_fraction": 0.6091942191123962,
+        "field_contrast": 1.2788331508636475,
+        "growth": 0.8796032667160034,
+        "max_abs_state": 5.505903720855713,
+        "nan_rate": 0.0,
+        "negative_field_response": 0.9370101690292358,
+        "phenotype_target_loss": 1.990943431854248,
+        "positive_field_response": 0.6676824688911438,
+        "stability_error": 1.4337000846862793
+      },
+      "phenotype": "radial"
+    },
+    {
+      "horizon": 512,
+      "lesion_fraction": 0.375,
+      "metrics": {
+        "damage_recovery_delta": 0.25114044547080994,
+        "damage_recovery_error": 0.09729770570993423,
+        "damage_recovery_fraction": 0.7207604646682739,
+        "field_contrast": 1.2788331508636475,
+        "growth": 0.8796032667160034,
+        "max_abs_state": 5.505903720855713,
+        "nan_rate": 0.0,
+        "negative_field_response": 0.9370101690292358,
+        "phenotype_target_loss": 1.990943431854248,
+        "positive_field_response": 0.6676824688911438,
+        "stability_error": 1.4337000846862793
+      },
+      "phenotype": "radial"
+    },
+    {
+      "horizon": 1024,
+      "lesion_fraction": 0.25,
+      "metrics": {
+        "damage_recovery_delta": -0.03341752290725708,
+        "damage_recovery_error": 0.6030896306037903,
+        "damage_recovery_fraction": -0.058660976588726044,
+        "field_contrast": 4.124356269836426,
+        "growth": 2.8573060035705566,
+        "max_abs_state": 13.066486358642578,
+        "nan_rate": 0.0,
+        "negative_field_response": 3.1035661697387695,
+        "phenotype_target_loss": 8.127922058105469,
+        "positive_field_response": 1.8437670469284058,
+        "stability_error": 15.053190231323242
+      },
+      "phenotype": "radial"
+    },
+    {
+      "horizon": 2048,
+      "lesion_fraction": 0.25,
+      "metrics": {
+        "damage_recovery_delta": -3.116546630859375,
+        "damage_recovery_error": 3.843970775604248,
+        "damage_recovery_fraction": -4.284359455108643,
+        "field_contrast": 12.800764083862305,
+        "growth": 10.231261253356934,
+        "max_abs_state": 32.579071044921875,
+        "nan_rate": 0.0,
+        "negative_field_response": 10.592644691467285,
+        "phenotype_target_loss": 34.70018005371094,
+        "positive_field_response": 4.0659565925598145,
+        "stability_error": 156.8390655517578
+      },
+      "phenotype": "radial"
+    }
+  ]
+}

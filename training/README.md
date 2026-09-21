@@ -47,6 +47,35 @@ P05b training and evaluation use controlled scenarios rather than the training f
 
 P05b evaluation uses the same separated field scenarios. Recovery is measured by actually zeroing the configured lesion region after a pre-roll, then comparing the recovered state against an intact counterfactual at the same final tick. `damage_recovery_delta` is positive only when the final lesion error is smaller than the immediate damage; `damage_recovery_error` reports the remaining absolute error.
 
+The v4 recovery objective differentiates through both final rollouts. It freezes
+only their common pre-lesion seed and immediate-damage budget. In v3, the intact
+rollout was detached: a shared additive drift could receive a recovery gradient
+even though it leaves the actual damaged-versus-intact gap unchanged. The paired
+gradient removes that false incentive while retaining the same forward loss,
+75% recovery target, architecture, and v2 evaluation protocol. The P05b config
+also aligns recovery training with the 512-tick fixture: 128 pre-lesion ticks
+and 384 recovery ticks, instead of 16 and 64. Morphology and field training
+retain their 32-tick unroll. A gradient-only ablation isolates the objective
+correction from this horizon change.
+An analytic affine-model regression test checks drift cancellation and verifies
+the contraction gradient against finite differences. This correction is not a
+checkpoint promotion; measured campaign results and visual review still govern
+selection.
+
+Run the additional stress evaluation against those saved checkpoints:
+
+```bash
+PYTHONPATH=training python training/evaluate_stress.py \
+  --config training/configs/p05b.yaml \
+  --checkpoints training/artifacts/p05b \
+  --out training/artifacts/p05b/stress-evaluation.json
+```
+
+It retains the same evaluation protocol, testing half-size and 1.5-times-size
+centered lesions at the evaluation horizon, then the original lesion at twice
+and four times that horizon. The CI evidence campaign also records these tests;
+a successful job means the measurements completed, not that a candidate passed.
+
 The checkpoint manifest now records `update_rate` explicitly so P06 inference can reconstruct execution semantics from exported metadata instead of relying on a runtime default.
 
 ## State contract
