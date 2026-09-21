@@ -184,6 +184,41 @@ export function createHomeGeometryParts(manifest: HomePresetManifest): readonly 
   }
 }
 
+export type HomeQualityDensityName = keyof HomePresetManifest['qualityDensity'];
+
+const ALWAYS_VISIBLE_ROLES = new Set<HomeGeometryRole>([
+  'floor',
+  'wall',
+  'perimeter',
+  'threshold',
+]);
+
+export function selectHomeGeometryParts(
+  manifest: HomePresetManifest,
+  quality: HomeQualityDensityName,
+): readonly HomeGeometryPart[] {
+  const parts = createHomeGeometryParts(manifest);
+  const density = manifest.qualityDensity[quality];
+
+  const requiredIds = new Set(
+    parts
+      .filter((part) => ALWAYS_VISIBLE_ROLES.has(part.role) || Boolean(part.fieldSourceId))
+      .map((part) => part.id),
+  );
+  const optionalParts = parts.filter((part) => !requiredIds.has(part.id));
+  const optionalTarget = Math.min(
+    optionalParts.length,
+    density.decorativeBudget,
+    Math.ceil(optionalParts.length * density.architectureDetail),
+  );
+
+  for (const part of optionalParts.slice(0, optionalTarget)) {
+    requiredIds.add(part.id);
+  }
+
+  return parts.filter((part) => requiredIds.has(part.id));
+}
+
 export function homeGeometrySignature(parts: readonly HomeGeometryPart[]): string {
   return parts
     .map((part) => {
