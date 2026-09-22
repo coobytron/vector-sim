@@ -10,6 +10,7 @@ import { HOME_PRESETS } from '../src/environments/homePresets';
 import {
   createHomeGeometryParts,
   homeGeometrySignature,
+  selectHomeGeometryParts,
   supportedHomeGeometryPresets,
 } from '../src/environments/homeGeometry';
 
@@ -24,6 +25,48 @@ describe('Spectral Homestead modular geometry', () => {
       return homeGeometrySignature(first);
     });
     expect(new Set(signatures).size).toBe(3);
+  });
+
+  it('consumes manifest quality density while preserving semantic geometry', () => {
+    for (const id of supportedHomeGeometryPresets()) {
+      const preset = HOME_PRESETS[id];
+      const desktop = selectHomeGeometryParts(preset, 'desktop');
+      const mobile = selectHomeGeometryParts(preset, 'mobile');
+
+      expect(mobile.length).toBeLessThan(desktop.length);
+      expect(homeGeometrySignature(selectHomeGeometryParts(preset, 'mobile'))).toBe(
+        homeGeometrySignature(mobile),
+      );
+
+      const mobileIds = new Set(mobile.map((part) => part.id));
+      for (const part of desktop) {
+        if (part.fieldSourceId) expect(mobileIds.has(part.id)).toBe(true);
+        if (['floor', 'wall', 'perimeter', 'threshold'].includes(part.role)) {
+          expect(mobileIds.has(part.id)).toBe(true);
+        }
+      }
+
+      const requiredIds = new Set(
+        desktop
+          .filter(
+            (part) =>
+              Boolean(part.fieldSourceId) ||
+              ['floor', 'wall', 'perimeter', 'threshold'].includes(part.role),
+          )
+          .map((part) => part.id),
+      );
+      const mobileOptionalCount = mobile.filter((part) => !requiredIds.has(part.id)).length;
+      expect(mobileOptionalCount).toBeLessThanOrEqual(
+        preset.qualityDensity.mobile.decorativeBudget,
+      );
+
+      const mobileGroup = createHomeEnvironment(preset, 'mobile');
+      expect(mobileGroup.children.length).toBe(mobile.length);
+      expect(mobileGroup.userData.quality).toBe('mobile');
+      expect(mobileGroup.userData.architectureDetail).toBe(
+        preset.qualityDensity.mobile.architectureDetail,
+      );
+    }
   });
 
   it('covers the modular architecture vocabulary across the Home kit', () => {
