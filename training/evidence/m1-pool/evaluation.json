@@ -1,0 +1,355 @@
+{
+  "baseline": {
+    "checks": {
+      "bounded_no_upward_trend": true,
+      "finite": true,
+      "grows": false,
+      "opposite_field_response": false,
+      "recovers_75": false
+    },
+    "criteria": {
+      "alive_coverage_min": 0.9,
+      "field_response_min": 0.05,
+      "growth_progress_min": 0.8,
+      "max_abs_trend_ratio_max": 1.1,
+      "recovery_fraction_min": 0.75
+    },
+    "held_out": {
+      "field_amplitude": 0.8,
+      "fire_seeds": [
+        900001,
+        900002,
+        900003,
+        900004
+      ],
+      "fire_stream": 1,
+      "lesion_centers": [
+        19,
+        51,
+        83,
+        115
+      ],
+      "lesion_fraction": 0.25
+    },
+    "max_abs_by_window": {
+      "0-512": 1.0,
+      "1024-2048": 1.0,
+      "2048-4096": 1.0,
+      "512-1024": 1.0
+    },
+    "max_abs_trend_ratio_2048_4096_over_512_1024": 1.0,
+    "pass": false,
+    "per_horizon": {
+      "1024": {
+        "alive_coverage_mean": 0.0078125,
+        "alive_coverage_min": 0.0078125,
+        "food_thickness_response_mean": 0.0,
+        "food_visible_mse_mean": 0.4788295328617096,
+        "growth_progress_mean": 0.0,
+        "growth_progress_min": 0.0,
+        "kill_thickness_response_mean": 0.0,
+        "kill_visible_mse_mean": 0.3855673372745514,
+        "lesion_region_target_mse_mean": 0.41876158863306046,
+        "lesion_tick": 512,
+        "max_abs_window": 1.0,
+        "recovery_fraction_all_channels_mean": 0.0,
+        "recovery_fraction_mean": 0.0,
+        "recovery_fraction_min": 0.0,
+        "visible_mse_mean": 0.4228722155094147,
+        "window": [
+          512,
+          1024
+        ]
+      },
+      "2048": {
+        "alive_coverage_mean": 0.0078125,
+        "alive_coverage_min": 0.0078125,
+        "food_thickness_response_mean": 0.0,
+        "food_visible_mse_mean": 0.4788295328617096,
+        "growth_progress_mean": 0.0,
+        "growth_progress_min": 0.0,
+        "kill_thickness_response_mean": 0.0,
+        "kill_visible_mse_mean": 0.3855673372745514,
+        "lesion_region_target_mse_mean": 0.41876158863306046,
+        "lesion_tick": 1024,
+        "max_abs_window": 1.0,
+        "recovery_fraction_all_channels_mean": 0.0,
+        "recovery_fraction_mean": 0.0,
+        "recovery_fraction_min": 0.0,
+        "visible_mse_mean": 0.4228722155094147,
+        "window": [
+          1024,
+          2048
+        ]
+      },
+      "4096": {
+        "alive_coverage_mean": 0.0078125,
+        "alive_coverage_min": 0.0078125,
+        "food_thickness_response_mean": 0.0,
+        "food_visible_mse_mean": 0.4788295328617096,
+        "growth_progress_mean": 0.0,
+        "growth_progress_min": 0.0,
+        "kill_thickness_response_mean": 0.0,
+        "kill_visible_mse_mean": 0.3855673372745514,
+        "lesion_region_target_mse_mean": 0.41876158863306046,
+        "lesion_tick": 2048,
+        "max_abs_window": 1.0,
+        "recovery_fraction_all_channels_mean": 0.0,
+        "recovery_fraction_mean": 0.0,
+        "recovery_fraction_min": 0.0,
+        "visible_mse_mean": 0.4228722155094147,
+        "window": [
+          2048,
+          4096
+        ]
+      },
+      "512": {
+        "alive_coverage_mean": 0.0078125,
+        "alive_coverage_min": 0.0078125,
+        "food_thickness_response_mean": 0.0,
+        "food_visible_mse_mean": 0.4788295328617096,
+        "growth_progress_mean": 0.0,
+        "growth_progress_min": 0.0,
+        "kill_thickness_response_mean": 0.0,
+        "kill_visible_mse_mean": 0.3855673372745514,
+        "lesion_region_target_mse_mean": 0.41876158863306046,
+        "lesion_tick": 256,
+        "max_abs_window": 1.0,
+        "recovery_fraction_all_channels_mean": 0.0,
+        "recovery_fraction_mean": 0.0,
+        "recovery_fraction_min": 0.0,
+        "visible_mse_mean": 0.4228722155094147,
+        "window": [
+          256,
+          512
+        ]
+      }
+    },
+    "protocol": "m1-exit-v1",
+    "seed_visible_mse": 0.4228722155094147
+  },
+  "checkpoint": {
+    "checkpoint_version": "m1-pool-pilot-v1",
+    "environment": {
+      "deterministic_reference": true,
+      "device": "cpu",
+      "machine": "x86_64",
+      "numpy": "2.3.2",
+      "platform": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
+      "python": "3.11.15",
+      "torch": "2.8.0+cu128",
+      "torch_threads": 2
+    },
+    "path": "branching-m1.pt",
+    "sha256": "ea24b446c2aeef786e4ef93b4e1f3e265457f2b85a9f5e53269b9c247e4ec03e",
+    "training_device": "cpu",
+    "training_wall_seconds": 830.8
+  },
+  "config": "configs/m1-pool.yaml",
+  "environment": {
+    "deterministic_reference": true,
+    "device": "cpu",
+    "machine": "x86_64",
+    "numpy": "2.3.2",
+    "platform": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "torch": "2.8.0+cu128",
+    "torch_threads": 4
+  },
+  "evaluation_wall_seconds": 31.0,
+  "trained": {
+    "checks": {
+      "bounded_no_upward_trend": true,
+      "finite": true,
+      "grows": true,
+      "opposite_field_response": true,
+      "recovers_75": true
+    },
+    "criteria": {
+      "alive_coverage_min": 0.9,
+      "field_response_min": 0.05,
+      "growth_progress_min": 0.8,
+      "max_abs_trend_ratio_max": 1.1,
+      "recovery_fraction_min": 0.75
+    },
+    "held_out": {
+      "field_amplitude": 0.8,
+      "fire_seeds": [
+        900001,
+        900002,
+        900003,
+        900004
+      ],
+      "fire_stream": 1,
+      "lesion_centers": [
+        19,
+        51,
+        83,
+        115
+      ],
+      "lesion_fraction": 0.25
+    },
+    "max_abs_by_window": {
+      "0-512": 1.017813801765442,
+      "1024-2048": 0.9998471140861511,
+      "2048-4096": 0.9998471140861511,
+      "512-1024": 0.9998471140861511
+    },
+    "max_abs_trend_ratio_2048_4096_over_512_1024": 1.0,
+    "pass": true,
+    "per_horizon": {
+      "1024": {
+        "alive_coverage_mean": 1.0,
+        "alive_coverage_min": 1.0,
+        "food_thickness_response_mean": 0.1641952395439148,
+        "food_visible_mse_mean": 6.961492999835173e-06,
+        "growth_progress_mean": 0.9999876022338867,
+        "growth_progress_min": 0.9999876022338867,
+        "kill_thickness_response_mean": -0.16365019977092743,
+        "kill_visible_mse_mean": 5.80683808948379e-06,
+        "lesion_region_target_mse_mean": 4.162010469599409e-06,
+        "lesion_tick": 512,
+        "max_abs_window": 0.9998471140861511,
+        "recovery_fraction_all_channels_mean": 0.999886657310297,
+        "recovery_fraction_mean": 0.9999967691984047,
+        "recovery_fraction_min": 0.9999927761483872,
+        "visible_mse_mean": 5.238992798695108e-06,
+        "window": [
+          512,
+          1024
+        ]
+      },
+      "2048": {
+        "alive_coverage_mean": 1.0,
+        "alive_coverage_min": 1.0,
+        "food_thickness_response_mean": 0.16419515013694763,
+        "food_visible_mse_mean": 6.961827239138074e-06,
+        "growth_progress_mean": 0.9999876022338867,
+        "growth_progress_min": 0.9999876022338867,
+        "kill_thickness_response_mean": -0.16365016996860504,
+        "kill_visible_mse_mean": 5.806838544231141e-06,
+        "lesion_region_target_mse_mean": 4.162266478147103e-06,
+        "lesion_tick": 1024,
+        "max_abs_window": 0.9998471140861511,
+        "recovery_fraction_all_channels_mean": 0.9999987236643954,
+        "recovery_fraction_mean": 0.9999999283425164,
+        "recovery_fraction_min": 0.9999998794292435,
+        "visible_mse_mean": 5.239040547166951e-06,
+        "window": [
+          1024,
+          2048
+        ]
+      },
+      "4096": {
+        "alive_coverage_mean": 1.0,
+        "alive_coverage_min": 1.0,
+        "food_thickness_response_mean": 0.16419515013694763,
+        "food_visible_mse_mean": 6.961825420148671e-06,
+        "growth_progress_mean": 0.9999876022338867,
+        "growth_progress_min": 0.9999876022338867,
+        "kill_thickness_response_mean": -0.16365018486976624,
+        "kill_visible_mse_mean": 5.806844910694053e-06,
+        "lesion_region_target_mse_mean": 4.162272404073519e-06,
+        "lesion_tick": 2048,
+        "max_abs_window": 0.9998471140861511,
+        "recovery_fraction_all_channels_mean": 0.9999998650355334,
+        "recovery_fraction_mean": 0.9999999545358785,
+        "recovery_fraction_min": 0.9999999393095336,
+        "visible_mse_mean": 5.239028268988477e-06,
+        "window": [
+          2048,
+          4096
+        ]
+      },
+      "512": {
+        "alive_coverage_mean": 1.0,
+        "alive_coverage_min": 1.0,
+        "food_thickness_response_mean": 0.16420435905456543,
+        "food_visible_mse_mean": 6.933197710168315e-06,
+        "growth_progress_mean": 0.9999876022338867,
+        "growth_progress_min": 0.9999876022338867,
+        "kill_thickness_response_mean": -0.16364958882331848,
+        "kill_visible_mse_mean": 5.806523404316977e-06,
+        "lesion_region_target_mse_mean": 4.201830336114654e-06,
+        "lesion_tick": 256,
+        "max_abs_window": 0.9998492002487183,
+        "recovery_fraction_all_channels_mean": 0.9983747154047258,
+        "recovery_fraction_mean": 0.9999358003876356,
+        "recovery_fraction_min": 0.9998524167234317,
+        "visible_mse_mean": 5.2384457376319915e-06,
+        "window": [
+          256,
+          512
+        ]
+      }
+    },
+    "protocol": "m1-exit-v1",
+    "seed_visible_mse": 0.4228722155094147
+  },
+  "trained_diagnostics_non_gating": {
+    "fields_on_mature_organism": {
+      "food": {
+        "thickness_response_after_128_ticks_on": 0.16439278423786163,
+        "visible_mse_vs_field_target_on": 6.679704256384866e-06,
+        "visible_mse_vs_neutral_target_128_ticks_after_off": 5.422134108812315e-06
+      },
+      "kill": {
+        "thickness_response_after_128_ticks_on": -0.16395634412765503,
+        "visible_mse_vs_field_target_on": 6.095673597883433e-06,
+        "visible_mse_vs_neutral_target_128_ticks_after_off": 4.772943157149712e-06
+      },
+      "local_food_patch_25pct": {
+        "inside_mean": 0.18803271651268005,
+        "outside_mean": 0.0010979961371049285
+      }
+    },
+    "mature_tick": 512,
+    "max_abs_state_change_per_tick_at_4096": 1.7881393432617188e-07,
+    "mean_abs_state_change_per_tick_at_4096": 7.013011504852784e-09,
+    "repair_curve_lesion_25pct_all_32_heldout_centres": {
+      "128": {
+        "mean": 0.9995183311402798,
+        "min": 0.9987127780914307
+      },
+      "16": {
+        "mean": 0.4085733168758452,
+        "min": 0.18361711502075195
+      },
+      "256": {
+        "mean": 0.999949658755213,
+        "min": 0.9998841285705566
+      },
+      "32": {
+        "mean": 0.8159248838201165,
+        "min": 0.5174026489257812
+      },
+      "64": {
+        "mean": 0.9955145213752985,
+        "min": 0.9822045564651489
+      }
+    },
+    "repair_curve_lesion_50pct_all_32_heldout_centres": {
+      "128": {
+        "mean": 0.9994429834187031,
+        "min": 0.9989157319068909
+      },
+      "16": {
+        "mean": 0.314661449752748,
+        "min": 0.214161217212677
+      },
+      "256": {
+        "mean": 0.999948397744447,
+        "min": 0.9998725056648254
+      },
+      "32": {
+        "mean": 0.6984264408238232,
+        "min": 0.5587868690490723
+      },
+      "64": {
+        "mean": 0.9875105530954897,
+        "min": 0.9706881642341614
+      }
+    }
+  },
+  "verdict": "PASS"
+}
