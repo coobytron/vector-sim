@@ -9,3 +9,7 @@ benchmark-results/local-*.json
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Local Python environments
+.venv*/
+training/.venv-training/
