@@ -34,6 +34,7 @@ The non-negotiable direction is:
 ## Specification index
 
 - [Roadmap](ROADMAP.md)
+- [NCA reference notes](docs/NCA-REFERENCE-NOTES.md)
 - [Project brief](docs/PROJECT-BRIEF.md)
 - [Art direction](docs/ART-DIRECTION.md)
 - [Simulation contract](docs/SIMULATION-CONTRACT.md)
