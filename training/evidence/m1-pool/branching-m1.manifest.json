@@ -1,0 +1,106 @@
+{
+  "alive_threshold": 0.1,
+  "architecture": "vector_graph_nca_v1",
+  "channels": 16,
+  "checkpoint_version": "m1-pool-pilot-v1",
+  "config": {
+    "checkpoint_version": "m1-pool-pilot-v1",
+    "evaluation": {
+      "field_amplitude": 0.8,
+      "held_out_lesion_centers": 4,
+      "held_out_seeds": [
+        900001,
+        900002,
+        900003,
+        900004
+      ],
+      "horizons": [
+        512,
+        1024,
+        2048,
+        4096
+      ],
+      "lesion_fraction": 0.25
+    },
+    "graph": {
+      "slots": 128
+    },
+    "model": {
+      "alive_threshold": 0.1,
+      "channels": 16,
+      "fire_rate": 0.5,
+      "hidden_width": 64,
+      "sensor_channels": 6
+    },
+    "phenotype": "branching",
+    "schema_version": 1,
+    "seed": 240807,
+    "training": {
+      "batch_size": 8,
+      "damage_count": 2,
+      "damage_start": 200,
+      "fields": {
+        "amplitude": [
+          0.3,
+          1.0
+        ],
+        "local_fraction": [
+          0.25,
+          0.6
+        ],
+        "probabilities": {
+          "food": 0.15,
+          "food_local": 0.15,
+          "kill": 0.15,
+          "kill_local": 0.15,
+          "neutral": 0.4
+        }
+      },
+      "iterations": 4000,
+      "learning_rate": 0.002,
+      "lesion_fraction": 0.25,
+      "log_every": 50,
+      "lr_gamma": 0.1,
+      "lr_milestones": [
+        3000
+      ],
+      "overflow_weight": 1.0,
+      "pool_size": 256,
+      "rollout_range": [
+        64,
+        96
+      ]
+    }
+  },
+  "dtype": "float32",
+  "environment": {
+    "deterministic_reference": true,
+    "device": "cpu",
+    "machine": "x86_64",
+    "numpy": "2.3.2",
+    "platform": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "torch": "2.8.0+cu128",
+    "torch_threads": 2
+  },
+  "final_history": {
+    "elapsed_s": 829.915,
+    "iteration": 3999,
+    "loss": 7.798495971655939e-06,
+    "lr": 0.0002,
+    "overflow": 2.1917152537298534e-07,
+    "pool_max_abs": 1.0001004934310913,
+    "steps": 88,
+    "target_loss": 7.579324119433295e-06
+  },
+  "fire_rate": 0.5,
+  "graph_slots": 128,
+  "hidden_width": 64,
+  "phenotype": "branching",
+  "schema_version": 1,
+  "sensor_channels": 6,
+  "sha256": "ea24b446c2aeef786e4ef93b4e1f3e265457f2b85a9f5e53269b9c247e4ec03e",
+  "training_device": "cpu",
+  "training_seed": 240807,
+  "training_wall_seconds": 830.8
+}

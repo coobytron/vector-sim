@@ -1,0 +1,37 @@
+# M1 CPU pilot: growing-NCA pool recipe on the Branching graph (128 slots =
+# QUALITY_TIERS.mobile.slotsPerOrganism). Sized for a 4-CPU container.
+schema_version: 1
+checkpoint_version: m1-pool-pilot-v1
+seed: 240807
+phenotype: branching
+graph:
+  slots: 128
+model:
+  channels: 16
+  sensor_channels: 6
+  hidden_width: 64
+  fire_rate: 0.5          # Bernoulli per node per tick (Growing NCA); see SELECTION.md
+  alive_threshold: 0.1
+training:
+  iterations: 4000
+  pool_size: 256
+  batch_size: 8
+  damage_count: 2         # lowest-loss samples lesioned per batch
+  damage_start: 200       # let the pool mature before lesioning
+  lesion_fraction: 0.25
+  rollout_range: [64, 96]
+  learning_rate: 0.002
+  lr_milestones: [3000]
+  lr_gamma: 0.1
+  overflow_weight: 1.0
+  log_every: 50
+  fields:
+    probabilities: {neutral: 0.4, food: 0.15, kill: 0.15, food_local: 0.15, kill_local: 0.15}
+    amplitude: [0.3, 1.0]
+    local_fraction: [0.25, 0.6]
+evaluation:
+  horizons: [512, 1024, 2048, 4096]
+  held_out_seeds: [900001, 900002, 900003, 900004]
+  held_out_lesion_centers: 4      # evenly spaced among held-out centres (node % 4 == 3)
+  lesion_fraction: 0.25
+  field_amplitude: 0.8

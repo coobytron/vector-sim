@@ -78,6 +78,73 @@ a successful job means the measurements completed, not that a candidate passed.
 
 The checkpoint manifest now records `update_rate` explicitly so P06 inference can reconstruct execution semantics from exported metadata instead of relying on a runtime default.
 
+## M1 pool training (growing-NCA recipe on the Branching graph)
+
+Roadmap milestone M1 ("Can the NCA live?") uses a separate model, runner and
+evaluation so P05b stays reproducible:
+
+- `vector_nca/graph_nca.py` — `vector_graph_nca_v1`: the 128-slot Branching tree
+  ported from `src/organisms/morphology.ts`, graph perception
+  (self, mean(neighbours) − self, parent − self, mean(children) − self, six sensors),
+  alive masking, a stochastic fire mask ported from `src/simulation/prng.ts`, and a
+  zero-initialised two-layer update MLP.
+- `vector_nca/pool.py` — sample pool, highest-loss seed replacement, lowest-loss damage.
+- `vector_nca/m1.py` — training loop (random 64–96 tick rollouts, overflow loss,
+  per-parameter gradient normalisation, Adam with step decay), checkpoint manifest and
+  JSON weight export for the browser.
+- `vector_nca/m1_eval.py` / `evaluate_m1.py` — the M1 exit test on held-out fire seeds
+  and held-out lesion centres at 512/1,024/2,048/4,096 ticks, baseline vs checkpoint.
+
+CPU pilot (the deterministic reference; `--threads` pins torch CPU threads):
+
+```bash
+PYTHONPATH=training python training/run_pool.py --config training/configs/m1-pool.yaml \
+  --out training/artifacts/m1-pool --device cpu --threads 2
+PYTHONPATH=training python training/evaluate_m1.py --config training/configs/m1-pool.yaml \
+  --checkpoint training/artifacts/m1-pool/branching-m1.pt \
+  --out training/evidence/m1-pool/evaluation.json --device cpu
+```
+
+`--device auto` picks MPS, then CUDA, then CPU. Only CPU runs enable
+`torch.use_deterministic_algorithms`; MPS/CUDA results can differ bitwise from CPU
+and between runs. The manifest records the training device, torch version and
+thread count next to the checkpoint SHA-256, and the evaluation report records the
+evaluation device, so evidence from different devices is never conflated.
+
+### Run on Apple Silicon (full M1 run)
+
+`configs/m1-pool-full.yaml` uses the same graph, channels, fire rate and evaluation
+protocol as the pilot with a 1,024-state pool, batch 16, hidden width 128 and 8,000
+iterations (sized for roughly 1–3 hours on an M5 Max). From the repository root:
+
+```bash
+python3 -m venv training/.venv-training
+source training/.venv-training/bin/activate
+python -m pip install -r training/requirements.txt
+
+# Train (logs one JSON line every 50 iterations).
+PYTHONPATH=training python training/run_pool.py \
+  --config training/configs/m1-pool-full.yaml \
+  --out training/artifacts/m1-pool-full --device mps 2>&1 | tee training/artifacts/m1-pool-full.log
+
+# Held-out 4,096-tick exit test, untrained baseline vs the checkpoint.
+# Evaluate on CPU so the numbers are comparable with the pilot; add --device mps to compare.
+PYTHONPATH=training python training/evaluate_m1.py \
+  --config training/configs/m1-pool-full.yaml \
+  --checkpoint training/artifacts/m1-pool-full/branching-m1.pt \
+  --out training/evidence/m1-pool-full/evaluation.json --device cpu
+
+# Evidence to commit (small JSON only; never the .pt):
+cp training/artifacts/m1-pool-full/branching-m1.manifest.json \
+   training/artifacts/m1-pool-full/branching-m1.history.json \
+   training/artifacts/m1-pool-full/branching-m1.weights.json \
+   training/evidence/m1-pool-full/
+```
+
+Then add a `SELECTION.md` beside them (same structure as
+`evidence/m1-pool/SELECTION.md`) with the verdict from `evaluation.json`.
+`training/artifacts/` and `*.pt` are git-ignored.
+
 ## State contract
 
 The reference model accepts per-node latent state plus sensor channels. Six sensor channels are currently reserved for positive field, negative field, directional gradient, habitat-like center weighting, alive/energy gate, and a future/custom channel. P06 should rely on manifest dimensions and explicit metadata rather than phenotype-specific branches.
