@@ -49,6 +49,7 @@ The non-negotiable direction is:
 - [P03 output decision](docs/adr/0002-linear-spectral-output.md)
 - [P04 vector-agent system](docs/P04-VECTOR-AGENTS.md)
 - [P08b lifecycle → presentation](docs/P08B-LIFECYCLE-PRESENTATION.md)
+- [M2 graybox loop](docs/M2-GRAYBOX.md)
 
 ## Phase order
 

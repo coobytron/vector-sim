@@ -1,6 +1,7 @@
 import './style.css';
 import { createApp } from './app/createApp';
 import { isJoltSpikeRequested } from './physics/joltSpikeFlag';
+import { grayboxSeed, isGrayboxRequested } from './graybox/grayboxFlag';
 
 const root = document.querySelector<HTMLElement>('#app');
 
@@ -28,6 +29,11 @@ try {
     // default app path is byte-for-byte unchanged.
     void import('./physics/joltSpikeRoute')
       .then((module) => module.runJoltBrowserSpike(root))
+      .catch(reportStartupFailure);
+  } else if (isGrayboxRequested(window.location.search)) {
+    // Opt-in M2 graybox loop: M1 graph NCA, one room, debug lines only.
+    void import('./graybox/grayboxRoute')
+      .then((module) => module.runGrayboxRoute(root, grayboxSeed(window.location.search)))
       .catch(reportStartupFailure);
   } else {
     createApp(root);

@@ -377,6 +377,18 @@ function rotateAndPlace(
   ];
 }
 
+/** Rest pose of the Branching tree (tree edges only) — the graph the M1 graph NCA was trained on. */
+export function branchingRestPose(slots: number): { parents: Int32Array; positions: Float32Array } {
+  const { nodes } = createBranchingMorphology(slots);
+  const parents = new Int32Array(nodes.length);
+  const positions = new Float32Array(nodes.length * 3);
+  nodes.forEach((node, index) => {
+    parents[index] = node.parent;
+    positions.set([node.x, node.y, node.z], index * 3);
+  });
+  return { parents, positions };
+}
+
 export function createMorphologyTopology(tier: QualityTier, seed: number): MorphologyTopology {
   const nodeCount = tier.organisms * tier.slotsPerOrganism;
   const restPositions = new Float32Array(nodeCount * 3);
