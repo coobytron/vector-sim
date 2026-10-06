@@ -2,6 +2,7 @@ import './style.css';
 import { createApp } from './app/createApp';
 import { isJoltSpikeRequested } from './physics/joltSpikeFlag';
 import { grayboxSeed, isGrayboxRequested } from './graybox/grayboxFlag';
+import { isNcaHomeRequested, ncaHomeSeed } from './homeSim/homeSimFlag';
 
 const root = document.querySelector<HTMLElement>('#app');
 
@@ -34,6 +35,11 @@ try {
     // Opt-in M2 graybox loop: M1 graph NCA, one room, debug lines only.
     void import('./graybox/grayboxRoute')
       .then((module) => module.runGrayboxRoute(root, grayboxSeed(window.location.search)))
+      .catch(reportStartupFailure);
+  } else if (isNcaHomeRequested(window.location.search)) {
+    // Opt-in M3 route: the M1 graph NCA in the courtyard Home, Porcelain look.
+    void import('./homeSim/homeSimRoute')
+      .then((module) => module.runNcaHomeRoute(root, ncaHomeSeed(window.location.search)))
       .catch(reportStartupFailure);
   } else {
     createApp(root);
