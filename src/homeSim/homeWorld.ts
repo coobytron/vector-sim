@@ -62,6 +62,20 @@ export interface HomeWorldEvent {
   readonly sourceIds: readonly string[];
 }
 
+export interface HomeWorldInput {
+  readonly tick: number;
+  readonly goal: HomeGoalId;
+}
+
+export interface HomeContact {
+  readonly sourceId: string;
+  /** Closest point on the authored source. */
+  readonly point: { readonly x: number; readonly y: number; readonly z: number };
+  /** Organism node receiving the contact. */
+  readonly node: number;
+  readonly value: number;
+}
+
 export interface HomeWorldOptions {
   readonly provider?: FieldProvider;
   /** Overrides the spawn search (tests place the organism directly). */
@@ -82,6 +96,17 @@ export interface HomeWorldSnapshot {
   readonly shelter: number;
   readonly lesionedThisTick: number;
   readonly goal: HomeGoalId;
+}
+
+function contactFor(
+  contacts: readonly { readonly sourceId: string; readonly point: { x: number; y: number; z: number }; readonly contribution: number }[] | undefined,
+  node: number,
+  value: number,
+): HomeContact | null {
+  if (!contacts || contacts.length === 0) return null;
+  let best = contacts[0]!;
+  for (const contact of contacts) if (contact.contribution > best.contribution) best = contact;
+  return { sourceId: best.sourceId, point: { x: best.point.x, y: best.point.y, z: best.point.z }, node, value };
 }
 
 function sourceCenter(preset: HomePresetManifest, id: string): { x: number; z: number } {
@@ -130,6 +155,18 @@ export class HomeWorld {
   readonly nodeDanger: Float32Array;
   readonly nodeFood: Float32Array;
   readonly events: HomeWorldEvent[] = [];
+  /** Goal changes in order, as `(tick, goal)`, starting with the initial goal at tick 0: the input timeline replay needs. */
+  readonly inputs: HomeWorldInput[] = [];
+  /** Tick a node was last destroyed by kill exposure, or -1. */
+  readonly nodeLesionTick: Int32Array;
+  /** Tick a previously lesioned node last came back alive, or -1. */
+  readonly nodeRegrowTick: Int32Array;
+  /** Where food and kill touch the organism this tick (strongest node), or null. */
+  foodContact: HomeContact | null = null;
+  killContact: HomeContact | null = null;
+  /** Whether the lifecycle reported intake / damage on the last tick. */
+  fedThisTick = false;
+  damagedThisTick = false;
   readonly spawnPoint: { readonly x: number; readonly z: number };
 
   private readonly stepper: GraphNcaStepper;
@@ -141,6 +178,7 @@ export class HomeWorld {
   private currentTick = 0;
   private lesioned = 0;
   private lesionedEver = false;
+  private readonly wasAlive: Uint8Array;
 
   constructor(model: GraphNcaModel, preset: HomePresetManifest, seed: number, options: HomeWorldOptions = {}) {
     const pose = branchingRestPose(model.nodes);
@@ -160,6 +198,9 @@ export class HomeWorld {
     this.sensors = new Float32Array(model.nodes * model.sensorChannels);
     this.nodeDanger = new Float32Array(model.nodes);
     this.nodeFood = new Float32Array(model.nodes);
+    this.nodeLesionTick = new Int32Array(model.nodes).fill(-1);
+    this.nodeRegrowTick = new Int32Array(model.nodes).fill(-1);
+    this.wasAlive = new Uint8Array(model.nodes);
     this.stepper = createGraphNcaStepper(model, this.seed, FIRE_STREAM);
 
     this.spawnPoint = options.spawn ?? this.findSpawn();
@@ -170,6 +211,7 @@ export class HomeWorld {
     this.lifecycle = createLifecycleSystem({ provider: this.provider, rates: { maxPopulation: 1 } });
     this.lifecycle.spawn({ id: 'organism-0', seed: this.seed, phenotype: model.phenotype, position: this.centroid() });
     this.goalId = options.goal ?? 'food';
+    this.inputs.push({ tick: 0, goal: this.goalId });
     this.events.push({ kind: 'spawn', tick: 0, sourceIds: [] });
   }
 
@@ -183,6 +225,7 @@ export class HomeWorld {
 
   setGoal(goal: HomeGoalId): void {
     if (goal === this.goalId) return;
+    this.inputs.push({ tick: this.currentTick, goal });
     this.goalId = goal;
     this.cost = null;
   }
@@ -304,6 +347,8 @@ export class HomeWorld {
 
   private sampleSensors(): void {
     const { sensorChannels } = this.model;
+    this.foodContact = null;
+    this.killContact = null;
     for (let node = 0; node < this.model.nodes; node += 1) {
       const sample = this.provider.sample(vec3(
         this.positions[node * 3]!,
@@ -314,6 +359,8 @@ export class HomeWorld {
       const danger = sample.scalars.danger ?? 0;
       this.nodeFood[node] = food;
       this.nodeDanger[node] = danger;
+      if (food > (this.foodContact?.value ?? 0)) this.foodContact = contactFor(sample.channelContexts?.energy?.contacts, node, food);
+      if (danger > (this.killContact?.value ?? 0)) this.killContact = contactFor(sample.channelContexts?.danger?.contacts, node, danger);
       const base = node * sensorChannels;
       for (let channel = 0; channel < sensorChannels; channel += 1) this.sensors[base + channel] = SENSORS_REST[channel] ?? 0;
       this.sensors[base] = food;
@@ -328,6 +375,8 @@ export class HomeWorld {
       // A dead organism keeps no living cells and never regrows from nothing.
       this.state.fill(0);
       this.lesioned = 0;
+      this.fedThisTick = false;
+      this.damagedThisTick = false;
       this.currentTick = tick + 1;
       return;
     }
@@ -340,7 +389,13 @@ export class HomeWorld {
       const base = node * channels;
       if (this.state[base + ALIVE_CHANNEL]! <= 0) continue;
       this.state.fill(0, base, base + channels);
+      this.nodeLesionTick[node] = tick + 1;
       lesioned += 1;
+    }
+    for (let node = 0; node < nodes; node += 1) {
+      const alive = this.state[node * channels + ALIVE_CHANNEL]! > this.model.aliveThreshold ? 1 : 0;
+      if (alive && !this.wasAlive[node] && this.nodeLesionTick[node]! >= 0) this.nodeRegrowTick[node] = tick + 1;
+      this.wasAlive[node] = alive;
     }
     this.lesioned = lesioned;
     if (lesioned > 0 && !this.lesionedEver) {
@@ -351,7 +406,11 @@ export class HomeWorld {
     this.lifecycle.clearEvents();
     this.lifecycle.moveTo('organism-0', this.centroid());
     this.lifecycle.step();
+    this.fedThisTick = false;
+    this.damagedThisTick = false;
     for (const event of this.lifecycle.events()) {
+      if (event.kind === 'intake') this.fedThisTick = true;
+      if (event.kind === 'damage') this.damagedThisTick = true;
       if (event.kind === 'intake') this.pushOnce('feed', tick + 1, event.sourceIds);
       if (event.kind === 'damage') this.pushOnce('damage', tick + 1, event.sourceIds);
       if (event.kind === 'death') this.pushOnce('death', tick + 1, event.sourceIds);
