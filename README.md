@@ -51,6 +51,7 @@ The non-negotiable direction is:
 - [P08b lifecycle → presentation](docs/P08B-LIFECYCLE-PRESENTATION.md)
 - [M2 graybox loop](docs/M2-GRAYBOX.md)
 - [M3 Home, one look](docs/M3-HOME.md)
+- [M4 Causal color, replay, export](docs/M4-CAUSAL-COLOR.md)
 
 ## Phase order
 

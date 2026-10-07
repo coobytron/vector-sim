@@ -41,5 +41,5 @@ Still open:
 - **Recognizable white cutaway domestic volume** needs a human look at the route.
 - **Habitat** is not implemented. The presets declare no habitat regions, and M1
   only ever saw the neutral habitat sensor value of 1.
-- **No default colour from shelter** holds trivially because the organism has no
-  emission yet; colour arrives with M4.
+- **No default colour from shelter** is now checked by M4's idle-emission test,
+  which includes the shelter goal. See `docs/M4-CAUSAL-COLOR.md`.
