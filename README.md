@@ -50,6 +50,7 @@ The non-negotiable direction is:
 - [P04 vector-agent system](docs/P04-VECTOR-AGENTS.md)
 - [P08b lifecycle → presentation](docs/P08B-LIFECYCLE-PRESENTATION.md)
 - [M2 graybox loop](docs/M2-GRAYBOX.md)
+- [M3 Home, one look](docs/M3-HOME.md)
 
 ## Phase order
 
